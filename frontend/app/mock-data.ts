@@ -6,6 +6,15 @@ export type MediaItem = {
   url: string;
 };
 
+export type AppUser = {
+  id: string;
+  name: string;
+  isAnonymous: boolean;
+  joinedAt: string;
+  uploadedPhotos: number;
+  uploadedVideos: number;
+};
+
 export const venue = {
   name: "Eskisehir Dugun Salonu",
   city: "Eskisehir",
@@ -83,4 +92,36 @@ export const mediaItems: MediaItem[] = [
     uploadedAt: "21:30",
     url: "https://images.unsplash.com/photo-1606800052052-a08af7148866?q=80&w=1600&auto=format&fit=crop",
   },
+  {
+    id: "m7",
+    type: "photo",
+    uploaderName: "Berkay",
+    uploadedAt: "22:15",
+    url: "https://images.unsplash.com/photo-1530103043960-ef38714abb15?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    id: "m8",
+    type: "photo",
+    uploaderName: "Sena",
+    uploadedAt: "22:45",
+    url: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    id: "m9",
+    type: "video",
+    uploaderName: "Burak",
+    uploadedAt: "23:10",
+    url: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=1600&auto=format&fit=crop",
+  },
+];
+
+export const mockAppUsers: AppUser[] = [
+  { id: "u1", name: "Ayşe Yılmaz", isAnonymous: false, joinedAt: "19:15", uploadedPhotos: 12, uploadedVideos: 2 },
+  { id: "u2", name: "Anonim Misafir", isAnonymous: true, joinedAt: "19:30", uploadedPhotos: 5, uploadedVideos: 0 },
+  { id: "u3", name: "Mehmet Demir", isAnonymous: false, joinedAt: "19:45", uploadedPhotos: 0, uploadedVideos: 1 },
+  { id: "u4", name: "Anonim Misafir", isAnonymous: true, joinedAt: "20:00", uploadedPhotos: 0, uploadedVideos: 0 },
+  { id: "u5", name: "Can & Elif Tuna", isAnonymous: false, joinedAt: "20:15", uploadedPhotos: 24, uploadedVideos: 4 },
+  { id: "u6", name: "Berkay Öz", isAnonymous: false, joinedAt: "20:30", uploadedPhotos: 3, uploadedVideos: 0 },
+  { id: "u7", name: "Sena Koç", isAnonymous: false, joinedAt: "21:00", uploadedPhotos: 8, uploadedVideos: 2 },
+  { id: "u8", name: "Anonim Misafir", isAnonymous: true, joinedAt: "21:15", uploadedPhotos: 1, uploadedVideos: 0 },
 ];
