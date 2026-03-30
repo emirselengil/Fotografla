@@ -1,11 +1,10 @@
 import AppHeader from "../components/AppHeader";
-import { couple, mediaItems, venue } from "../mock-data";
+import { couple, venue } from "../mock-data";
 
 const navItems = [
   { label: "Genel Bakis", href: "/salon" },
   { label: "Etkinlikler", href: "/salon/etkinlikler" },
   { label: "QR Yonetimi", href: "/salon/qr" },
-  { label: "Medya", href: "/salon/medya" },
 ];
 
 function StatCard({ label, value, accent }: { label: string; value: string; accent?: string }) {
@@ -15,20 +14,6 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
       <p className={`text-3xl font-display font-semibold ${accent ?? "text-foreground"}`}>
         {value}
       </p>
-    </div>
-  );
-}
-
-function Divider() {
-  return (
-    <div className="flex items-center gap-3 my-6">
-      <div className="flex-1 h-px bg-soft-border" />
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-sage opacity-60">
-        <circle cx="8" cy="8" r="3" fill="currentColor" />
-        <circle cx="2" cy="8" r="1.5" fill="currentColor" />
-        <circle cx="14" cy="8" r="1.5" fill="currentColor" />
-      </svg>
-      <div className="flex-1 h-px bg-soft-border" />
     </div>
   );
 }
@@ -44,7 +29,6 @@ export default function SalonPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard label="Aktif Etkinlik" value="1" accent="text-sage-dark" />
-        <StatCard label="Yuklenen Medya" value={String(mediaItems.length)} />
         <StatCard label="Katilimci" value={String(couple.participantCount)} />
         <StatCard label="Paket" value={venue.monthlyPlan} accent="text-gold" />
       </div>
@@ -143,43 +127,6 @@ export default function SalonPage() {
               >
                 PDF Indir (Pasif)
               </button>
-            </div>
-          </section>
-
-          {/* Medya Kutusu */}
-          <section className="bg-cream rounded-2xl border border-soft-border overflow-hidden">
-            <div className="px-5 py-4 border-b border-soft-border">
-              <h2 className="font-display text-lg font-semibold text-foreground">Medya Kutusu</h2>
-            </div>
-            <div className="p-5">
-              <p className="text-xs text-slate-400 mb-3">Odeme onayli etkinligin yuklenen medyalari</p>
-              <div className="grid grid-cols-3 gap-2">
-                {mediaItems.slice(0, 6).map((item) => (
-                  <div
-                    key={item.id}
-                    className="aspect-square rounded-lg overflow-hidden bg-sage-light relative"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.url}
-                      alt={item.id}
-                      className="w-full h-full object-cover"
-                    />
-                    {item.type === "video" && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <div className="w-6 h-6 rounded-full bg-white/80 flex items-center justify-center">
-                          <div className="w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[8px] border-l-foreground ml-0.5" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <Divider />
-              <p className="text-center font-display text-2xl font-semibold text-foreground">
-                {mediaItems.length}
-              </p>
-              <p className="text-center text-xs text-slate-400 mt-0.5">toplam foto / video</p>
             </div>
           </section>
         </div>

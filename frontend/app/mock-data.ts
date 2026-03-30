@@ -125,3 +125,25 @@ export const mockAppUsers: AppUser[] = [
   { id: "u7", name: "Sena Koç", isAnonymous: false, joinedAt: "21:00", uploadedPhotos: 8, uploadedVideos: 2 },
   { id: "u8", name: "Anonim Misafir", isAnonymous: true, joinedAt: "21:15", uploadedPhotos: 1, uploadedVideos: 0 },
 ];
+
+export type WeddingEvent = {
+  id: string;
+  coupleName: string;
+  date: string;        // "15 Nisan 2026"
+  startTime: string;   // "18:00"
+  endTime: string;     // "23:00"
+  pax: number;         // Davetli sayisi
+  status: "planned" | "active" | "completed" | "cancelled";
+  packageName?: string;
+  paymentApproved: boolean;
+};
+
+export const mockEvents: WeddingEvent[] = [
+  { id: "e1", coupleName: "Emir Selengil & Saliha Goray",  date: "23 Mart 2026",  startTime: "19:00", endTime: "23:30", pax: 187, status: "active",    packageName: "Salon Pro",    paymentApproved: true  },
+  { id: "e2", coupleName: "Ahmet Yilmaz & Merve Celik",    date: "5 Nisan 2026",  startTime: "18:30", endTime: "23:00", pax: 220, status: "planned",   packageName: "Salon Plus",   paymentApproved: true  },
+  { id: "e3", coupleName: "Can Demir & Elif Arslan",       date: "12 Nisan 2026", startTime: "19:00", endTime: "00:00", pax: 150, status: "planned",   packageName: "Salon Pro",    paymentApproved: false },
+  { id: "e4", coupleName: "Burak Sahin & Zeynep Koc",     date: "8 Mart 2026",   startTime: "17:00", endTime: "22:30", pax: 300, status: "completed",  packageName: "Salon Elite",  paymentApproved: true  },
+  { id: "e5", coupleName: "Kemal Ozturk & Dilan Aydin",   date: "1 Mart 2026",   startTime: "19:00", endTime: "23:00", pax: 95,  status: "completed",  packageName: "Salon Pro",    paymentApproved: true  },
+  { id: "e6", coupleName: "Serkan Kurt & Naz Polat",      date: "20 Subat 2026", startTime: "18:00", endTime: "22:00", pax: 130, status: "cancelled",  packageName: "Salon Plus",   paymentApproved: false },
+];
+
