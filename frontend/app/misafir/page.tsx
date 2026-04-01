@@ -225,11 +225,11 @@ function MisafirYuklemeContent() {
   };
 
   const headerInitials = name ? name.charAt(0).toUpperCase() : "A";
-  const headerName = !isAuthorized 
-    ? "Erişim Kısıtlı" 
+  const headerName = !isAuthorized
+    ? "Erişim Kısıtlı"
     : (!activeEvent ? "Misafir Portalı" : activeEvent.coupleName);
-  const headerSubtitle = !isAuthorized 
-    ? "Lütfen QR kodu okutun" 
+  const headerSubtitle = !isAuthorized
+    ? "Lütfen QR kodu okutun"
     : (!activeEvent ? venue.name : `${venue.name} — ${activeEvent.date}`);
 
   return (
@@ -239,15 +239,16 @@ function MisafirYuklemeContent() {
       initials={headerInitials}
       navItems={[]}
       hideProfile={true}
+      variant={activeEvent && isAuthorized ? "hero" : "dashboard"}
     >
       {!isAuthorized && (
-        <div className="max-w-md mx-auto mt-10">
-          <section className="bg-cream rounded-2xl border border-soft-border p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.5s_ease-out]">
+        <div className="max-w-md mx-auto mt-6 md:mt-10">
+          <section className="bg-cream rounded-2xl border border-soft-border p-6 md:p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.5s_ease-out]">
             <FloralCornerTopLeft />
-            <div className="mx-auto w-24 h-24 rounded-full bg-sage-light/50 flex items-center justify-center mb-6 relative z-10">
+            <div className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-full bg-sage-light/50 flex items-center justify-center mb-5 md:mb-6 relative z-10">
               <LockIcon />
             </div>
-            <h1 className="font-display text-2xl font-semibold text-foreground mb-3 relative z-10">
+            <h1 className="font-display text-xl md:text-2xl font-semibold text-foreground mb-2 md:mb-3 relative z-10">
               Erişim Kısıtlı
             </h1>
             <p className="text-sm text-slate-500 leading-relaxed mb-6 relative z-10">
@@ -258,18 +259,18 @@ function MisafirYuklemeContent() {
       )}
 
       {isAuthorized && !activeEvent && (
-        <div className="max-w-md mx-auto mt-10">
-          <section className="bg-cream rounded-2xl border border-soft-border p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.5s_ease-out]">
+        <div className="max-w-md mx-auto mt-6 md:mt-10">
+          <section className="bg-cream rounded-2xl border border-soft-border p-6 md:p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.5s_ease-out]">
             <FloralCornerTopLeft />
-            <div className="mx-auto w-24 h-24 rounded-full bg-gold-light flex items-center justify-center mb-6 relative z-10">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold">
+            <div className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-full bg-gold-light flex items-center justify-center mb-5 md:mb-6 relative z-10">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />
                 <line x1="8" y1="2" x2="8" y2="6" />
                 <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
             </div>
-            <h1 className="font-display text-2xl font-semibold text-foreground mb-3 relative z-10">
+            <h1 className="font-display text-xl md:text-2xl font-semibold text-foreground mb-2 md:mb-3 relative z-10">
               Şu An Aktif Etkinlik Yok
             </h1>
             <p className="text-sm text-slate-500 leading-relaxed mb-4 relative z-10">
@@ -280,15 +281,15 @@ function MisafirYuklemeContent() {
       )}
 
       {isAuthorized && activeEvent && step === "welcome" && (
-        <div className="max-w-md mx-auto mt-10">
-          <section className="bg-cream rounded-2xl border border-soft-border p-8 md:p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.6s_ease-out]">
+        <div className="max-w-md mx-auto mt-6 md:mt-10">
+          <section className="bg-cream rounded-2xl border border-soft-border p-6 md:p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.6s_ease-out]">
             <FloralCornerTopLeft />
-            
+
             <div className="relative z-10">
-              <h2 className="font-display text-2xl font-semibold text-foreground mb-2">
+              <h2 className="font-display text-xl md:text-2xl font-semibold text-foreground mb-2">
                 Hoş Geldiniz
               </h2>
-              <p className="text-sm text-slate-600 leading-relaxed mb-8">
+              <p className="text-[13px] md:text-sm text-slate-600 leading-relaxed mb-6 md:mb-8">
                 Çektiğiniz fotoğraf ve videoları düğün albümüne ekleyerek bu özel güne katkıda bulunabilirsiniz. 📸
               </p>
 
@@ -318,21 +319,21 @@ function MisafirYuklemeContent() {
 
       {isAuthorized && activeEvent && step === "upload" && (
         <div className="grid gap-6 lg:grid-cols-3 animate-[fadeSlideUp_0.4s_ease-out]">
-          
+
           {/* Sol Kolon - Sürükle Bırak ve Önizleme */}
           <div className="lg:col-span-2 flex flex-col gap-6">
-            
+
             {showSuccess && (
               <section className="bg-cream rounded-2xl border border-soft-border p-4">
-                 <SuccessAnimation count={lastUploadCount} />
+                <SuccessAnimation count={lastUploadCount} />
               </section>
             )}
 
             {/* Sürükle & Bırak */}
             <section
               className={`
-                bg-cream rounded-2xl border-2 border-dashed p-10 flex flex-col items-center justify-center text-center
-                transition-all duration-300 cursor-pointer min-h-[250px]
+                bg-cream rounded-2xl border-2 border-dashed p-6 md:p-10 flex flex-col items-center justify-center text-center
+                transition-all duration-300 cursor-pointer min-h-[220px] md:min-h-[250px]
                 ${isDragOver ? "border-sage bg-sage-light/30" : "border-soft-border hover:border-sage hover:bg-sage-light/10"}
               `}
               onClick={() => fileInputRef.current?.click()}
@@ -384,7 +385,7 @@ function MisafirYuklemeContent() {
                 </div>
               </section>
             )}
-            
+
             {/* İpucu */}
             {selectedFiles.length === 0 && !showSuccess && (
               <section className="bg-sage-light/30 rounded-2xl border border-sage/20 p-5 flex items-start gap-3">
@@ -403,7 +404,7 @@ function MisafirYuklemeContent() {
 
           {/* Sağ Kolon - İşlemler & Durum */}
           <div className="flex flex-col gap-6">
-            
+
             <section className="bg-cream rounded-2xl border border-soft-border overflow-hidden">
               <div className="px-5 py-4 border-b border-soft-border">
                 <h2 className="font-display text-lg font-semibold text-foreground">İşlem</h2>
@@ -413,7 +414,7 @@ function MisafirYuklemeContent() {
                   <span className="text-slate-500">Seçilen Dosya:</span>
                   <span className="font-medium text-foreground">{selectedFiles.length} adet</span>
                 </div>
-                
+
                 <button
                   onClick={handleUpload}
                   disabled={isUploading || selectedFiles.length === 0}
@@ -421,7 +422,7 @@ function MisafirYuklemeContent() {
                 >
                   {isUploading ? `Yükleniyor... %${uploadProgress}` : "Medyaları Yükle"}
                 </button>
-                
+
                 {isUploading && (
                   <div className="w-full bg-sage-light rounded-full h-2 mt-2">
                     <div className="bg-sage-dark h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />

@@ -111,7 +111,7 @@ export default function KatilimcilarPage() {
                 />
             </div>
 
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 w-full">
                 {/* Durum Filtreleri */}
                 <div className="flex items-center bg-white border border-soft-border rounded-xl p-1 overflow-x-auto">
                     {[
