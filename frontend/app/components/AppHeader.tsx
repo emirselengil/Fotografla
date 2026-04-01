@@ -39,7 +39,7 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen w-full bg-background flex flex-col overflow-x-hidden">
       {/* Top bar */}
       <header className="bg-cream border-b border-soft-border sticky top-0 z-[100]">
         <div className="mx-auto max-w-7xl px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-4 md:gap-6">
