@@ -31,3 +31,54 @@ body {
 .font-display {
   font-family: var(--font-playfair), Georgia, serif;
 }
+
+/* ── Misafir Sayfası Animasyonları ──────────────────────── */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes drawCheck {
+  from {
+    stroke-dasharray: 30;
+    stroke-dashoffset: 30;
+  }
+  to {
+    stroke-dasharray: 30;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes confetti {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--rotation, 0deg)) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--rotation, 0deg)) translateY(-40px) scale(0);
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(200%) skewX(-12deg);
+  }
+}

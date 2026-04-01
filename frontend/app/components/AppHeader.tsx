@@ -8,10 +8,11 @@ type NavItem = { label: string; href: string };
 
 type Props = {
   name: string;
-  initials: string;
+  initials?: string;
   subtitle: string;
   navItems: NavItem[];
   children: ReactNode;
+  hideProfile?: boolean;
 };
 
 function LeafLeft() {
@@ -32,7 +33,7 @@ function LeafRight() {
   );
 }
 
-export default function AppHeader({ name, initials, subtitle, navItems, children }: Props) {
+export default function AppHeader({ name, initials, subtitle, navItems, children, hideProfile = false }: Props) {
   const pathname = usePathname();
 
   return (
@@ -66,21 +67,23 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
           </div>
 
           {/* Profile */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium text-foreground leading-none">{name}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+          {!hideProfile && (
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-medium text-foreground leading-none">{name}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-sage flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                {initials || "U"}
+              </div>
+              <Link
+                href="/"
+                className="hidden sm:block text-xs text-slate-500 border border-soft-border rounded-lg px-3 py-1.5 hover:bg-sage-light transition"
+              >
+                Cikis
+              </Link>
             </div>
-            <div className="w-9 h-9 rounded-full bg-sage flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-              {initials}
-            </div>
-            <Link
-              href="/"
-              className="hidden sm:block text-xs text-slate-500 border border-soft-border rounded-lg px-3 py-1.5 hover:bg-sage-light transition"
-            >
-              Cikis
-            </Link>
-          </div>
+          )}
         </div>
       </header>
 

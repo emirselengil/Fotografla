@@ -32,7 +32,7 @@ function PlaceholderQRCode() {
 /* ── Sayfa Bileşeni ─────────────────────────────────────────── */
 export default function QRYonetimiPage() {
   // Mock verideki duruma göre başlangıç durumu belirliyoruz
-  const [isQrGenerated, setIsQrGenerated] = useState(venue.qrStatus === "created");
+  const [isQrGenerated, setIsQrGenerated] = useState((venue.qrStatus as string) === "created");
 
   // QR Üretme animasyon simülasyonu
   const [isGenerating, setIsGenerating] = useState(false);
