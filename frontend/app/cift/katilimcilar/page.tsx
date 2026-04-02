@@ -131,13 +131,6 @@ export default function KatilimcilarPage() {
                     ))}
                 </div>
 
-                {/* QR Kod İndir Butonu */}
-                <button className="flex items-center gap-2 bg-sage hover:bg-sage-dark text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-sm hover:translate-y-px">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect>
-                    </svg>
-                    <span className="hidden sm:inline">QR Kodu Al</span>
-                </button>
             </div>
         </div>
 

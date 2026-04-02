@@ -38,6 +38,22 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const profileHref = pathname.startsWith("/salon")
+    ? "/salon/profil"
+    : pathname.startsWith("/cift")
+      ? "/cift/profil"
+      : "/";
+
+  const getActiveHref = () => {
+    const matched = navItems
+      .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+      .sort((a, b) => b.href.length - a.href.length);
+
+    return matched[0]?.href ?? "";
+  };
+
+  const activeHref = getActiveHref();
+
   return (
     <div className="min-h-screen w-full bg-background flex flex-col overflow-x-hidden">
       {/* Top bar */}
@@ -50,7 +66,7 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
             </span>
             <nav className="hidden md:flex items-center gap-0.5">
               {navItems.map((item) => {
-                const active = pathname === item.href;
+                const active = activeHref === item.href;
                 return (
                   <Link
                     key={item.href}
@@ -75,9 +91,13 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
                   <p className="text-sm font-medium text-foreground leading-none">{name}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
                 </div>
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-sage flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0">
+                <Link
+                  href={profileHref}
+                  aria-label="Profile git"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-sage flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0 hover:bg-sage-dark transition"
+                >
                   {initials || "U"}
-                </div>
+                </Link>
                 <Link
                   href="/"
                   className="hidden sm:block text-xs text-slate-500 border border-soft-border rounded-lg px-3 py-1.5 hover:bg-sage-light transition ml-2"
@@ -114,7 +134,7 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
               {navItems.length > 0 && (
                 <nav className="flex flex-col gap-1 pb-4 border-b border-slate-100">
                   {navItems.map((item) => {
-                    const active = pathname === item.href;
+                    const active = activeHref === item.href;
                     return (
                       <Link
                         key={item.href}
@@ -136,10 +156,14 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
               {!hideProfile && (
                 <div className="flex items-center justify-between pt-1 pb-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-sage flex items-center justify-center text-white text-base font-bold flex-shrink-0 hidden">
-                      {/* Avatar already in top nav now, but keeping for structure if needed */}
+                    <Link
+                      href={profileHref}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      aria-label="Profile git"
+                      className="w-10 h-10 rounded-full bg-sage flex items-center justify-center text-white text-base font-bold flex-shrink-0"
+                    >
                       {initials || "U"}
-                    </div>
+                    </Link>
                     <div>
                       <p className="text-sm font-medium text-foreground">{name}</p>
                       <p className="text-[11px] text-slate-500 mt-0.5">{subtitle}</p>

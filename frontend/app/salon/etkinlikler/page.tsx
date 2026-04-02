@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import AppHeader from "../../components/AppHeader";
 import { venue, mockEvents, WeddingEvent } from "../../mock-data";
 
@@ -38,6 +39,8 @@ const statusConfig = {
     bar: "bg-rose-300",
   },
 };
+
+type EventFilter = "all" | "active" | "planned" | "completed" | "cancelled";
 
 /* ── İstatistik Kartı ─────────────────────────────────────────── */
 function StatBox({
@@ -90,29 +93,46 @@ function StatBox({
 
 /* ── Ana Sayfa ─────────────────────────────────────────── */
 export default function EtkinliklerPage() {
-  const [filter, setFilter] = useState<
-    "all" | "active" | "planned" | "completed" | "cancelled"
-  >("all");
+  const [filter, setFilter] = useState<EventFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [events] = useState<WeddingEvent[]>(() => {
+    if (typeof window === "undefined") {
+      return mockEvents;
+    }
+
+    try {
+      const saved = localStorage.getItem("salon-created-events");
+      if (!saved) {
+        return mockEvents;
+      }
+      const parsed = JSON.parse(saved) as WeddingEvent[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return [...parsed, ...mockEvents];
+      }
+      return mockEvents;
+    } catch {
+      return mockEvents;
+    }
+  });
 
   /* İstatistikler */
   const stats = useMemo(() => ({
-    total: mockEvents.length,
-    upcoming: mockEvents.filter((e) => e.status === "planned" || e.status === "active").length,
-    completed: mockEvents.filter((e) => e.status === "completed").length,
-    totalPax: mockEvents.filter((e) => e.status !== "cancelled").reduce((acc, e) => acc + e.pax, 0),
-  }), []);
+    total: events.length,
+    upcoming: events.filter((e) => e.status === "planned" || e.status === "active").length,
+    completed: events.filter((e) => e.status === "completed").length,
+    totalPax: events.filter((e) => e.status !== "cancelled").reduce((acc, e) => acc + e.pax, 0),
+  }), [events]);
 
   /* Filtre + Arama */
   const displayed = useMemo(() => {
-    return mockEvents.filter((e) => {
+    return events.filter((e) => {
       const matchesFilter = filter === "all" || e.status === filter;
       const matchesSearch = e.coupleName
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
-  }, [filter, searchQuery]);
+  }, [events, filter, searchQuery]);
 
   return (
     <AppHeader
@@ -176,10 +196,10 @@ export default function EtkinliklerPage() {
                 { id: "active", label: "Aktif" },
                 { id: "planned", label: "Yaklaşan" },
                 { id: "completed", label: "Tamamlanan" },
-              ].map((btn) => (
+              ].map((btn: { id: EventFilter; label: string }) => (
                 <button
                   key={btn.id}
-                  onClick={() => setFilter(btn.id as any)}
+                  onClick={() => setFilter(btn.id)}
                   className={`px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     filter === btn.id
                       ? "bg-sage-light/50 text-sage-dark"
@@ -192,7 +212,10 @@ export default function EtkinliklerPage() {
             </div>
 
             {/* Yeni Ekle Butonu */}
-            <button className="flex items-center gap-2 bg-sage hover:bg-sage-dark text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-sm hover:translate-y-px whitespace-nowrap">
+            <Link
+              href="/salon/etkinlikler/yeni"
+              className="flex items-center gap-2 bg-sage hover:bg-sage-dark text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-sm hover:translate-y-px whitespace-nowrap"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
@@ -208,7 +231,7 @@ export default function EtkinliklerPage() {
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
               <span className="hidden sm:inline">Yeni Etkinlik</span>
-            </button>
+            </Link>
           </div>
         </div>
 

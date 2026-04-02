@@ -1,4 +1,5 @@
 import AppHeader from "../components/AppHeader";
+import Link from "next/link";
 import { couple, venue } from "../mock-data";
 
 const navItems = [
@@ -68,7 +69,12 @@ export default function SalonPage() {
           <section className="bg-cream rounded-2xl border border-soft-border overflow-hidden">
             <div className="px-6 py-4 border-b border-soft-border flex items-center justify-between">
               <h2 className="font-display text-lg font-semibold text-foreground">Etkinlik Takvimi</h2>
-              <button className="text-sm text-sage-dark font-medium hover:underline">+ Yeni Etkinlik</button>
+              <Link
+                href="/salon/etkinlikler/yeni"
+                className="text-sm text-sage-dark font-medium hover:underline"
+              >
+                + Yeni Etkinlik
+              </Link>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
