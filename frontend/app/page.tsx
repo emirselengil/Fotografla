@@ -1,10 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { mockAuthUsers } from "./mock-data";
 import WeddingPanel from "./components/WeddingPanel";
+import { apiRequest } from "./lib/api";
+import { clearAuth, getRole, getToken, persistAuth } from "./lib/auth";
+
+type LoginResponse = {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    role: string;
+  };
+};
 
 export default function Home() {
   const router = useRouter();
@@ -12,22 +23,64 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
+  useEffect(() => {
+    const token = getToken();
+    const role = getRole();
 
-    const matchedUser = mockAuthUsers.find(
-      (user) =>
-        user.email === email.trim().toLowerCase() && user.password === password
-    );
-
-    if (!matchedUser) {
-      setError("E-posta veya sifre hatali.");
+    if (!token || !role) {
       return;
     }
 
-    router.push(matchedUser.role === "salon" ? "/salon" : "/cift");
+    if (role === "salon_owner" || role === "staff") {
+      router.replace("/salon");
+      return;
+    }
+
+    router.replace("/cift");
+  }, [router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reason") === "session-expired") {
+      setError("Oturum sureniz doldu. Lutfen tekrar giris yapin.");
+    }
+  }, []);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+
+    setIsLoading(true);
+    clearAuth();
+
+    try {
+      const response = await apiRequest<LoginResponse>("/api/v1/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
+
+      persistAuth(response.token, response.user.role);
+
+      if (response.user.role === "salon_owner" || response.user.role === "staff") {
+        router.push("/salon");
+        return;
+      }
+
+      router.push("/cift");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Giris basarisiz.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -70,6 +123,7 @@ export default function Home() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="kullanici@ornek.com"
                 required
+                disabled={isLoading}
                 className="w-full rounded-xl px-4 py-3 text-sm outline-none transition"
                 style={{
                   border: "1px solid #dde6d8",
@@ -90,6 +144,7 @@ export default function Home() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
+                  disabled={isLoading}
                   className="w-full rounded-xl px-4 py-3 pr-14 text-sm outline-none transition"
                   style={{
                     border: "1px solid #dde6d8",
@@ -126,10 +181,11 @@ export default function Home() {
 
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full rounded-xl font-medium py-3 text-white transition hover:opacity-90"
               style={{ background: "#7a9b6f" }}
             >
-              Giris Yap
+              {isLoading ? "Giris Yapiliyor..." : "Giris Yap"}
             </button>
           </form>
 

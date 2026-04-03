@@ -1,7 +1,18 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import AppHeader from "../components/AppHeader";
-import { couple, mediaItems, venue, mockAppUsers } from "../mock-data";
+import {
+  fetchEventMedia,
+  fetchEventParticipants,
+  fetchEventSummary,
+  getDefaultEventId,
+  type EventSummaryResponse,
+  type MediaListItemResponse,
+  type ParticipantListItemResponse,
+} from "../lib/dashboard-api";
 
 /* ── Nav ─────────────────────────────────────────── */
 const navItems = [
@@ -35,37 +46,59 @@ function StatCard({
   );
 }
 
-function Divider() {
-  return (
-    <div className="flex items-center gap-3 my-6">
-      <div className="flex-1 h-px bg-soft-border" />
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        className="text-sage opacity-60"
-      >
-        <circle cx="8" cy="8" r="3" fill="currentColor" />
-        <circle cx="2" cy="8" r="1.5" fill="currentColor" />
-        <circle cx="14" cy="8" r="1.5" fill="currentColor" />
-      </svg>
-      <div className="flex-1 h-px bg-soft-border" />
-    </div>
-  );
-}
-
 /* ── Sayfa ────────────────────────────────────────── */
 export default function CiftPage() {
+  const [summary, setSummary] = useState<EventSummaryResponse | null>(null);
+  const [mediaItems, setMediaItems] = useState<MediaListItemResponse[]>([]);
+  const [participants, setParticipants] = useState<ParticipantListItemResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const run = async () => {
+      const eventId = getDefaultEventId();
+      if (!eventId) {
+        setError("NEXT_PUBLIC_DEFAULT_EVENT_ID ayarlanmalidir.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const [eventSummary, eventMedia, eventParticipants] = await Promise.all([
+          fetchEventSummary(eventId),
+          fetchEventMedia(eventId),
+          fetchEventParticipants(eventId),
+        ]);
+
+        setSummary(eventSummary);
+        setMediaItems(eventMedia);
+        setParticipants(eventParticipants);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Veriler alinamadi.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void run();
+  }, []);
+
+  const mediaPreview = useMemo(() => mediaItems.slice(0, 9), [mediaItems]);
+  const participantsPreview = useMemo(() => participants.slice(0, 5), [participants]);
+  const paymentApproved = summary?.status === "ACTIVE" || summary?.status === "COMPLETED";
+
   return (
     <AppHeader
-      name={couple.groomName}
+      name={summary?.eventName ?? "Cift"}
       initials="ES"
       subtitle="Cift Paneli"
       navItems={navItems}
     >
+      {loading && <p className="text-sm text-slate-500">Veriler yukleniyor...</p>}
+      {error && <p className="text-sm text-rose-600">{error}</p>}
+
       {/* Ödeme uyarısı (koşullu) */}
-      {!couple.paymentApproved && (
+      {!loading && !error && !paymentApproved && (
         <div className="rounded-2xl border border-gold/30 bg-gold-light p-6 mb-8">
           <h2 className="font-display text-lg font-semibold text-amber-800">
             Odeme onayi bekleniyor
@@ -76,19 +109,19 @@ export default function CiftPage() {
         </div>
       )}
 
-      {couple.paymentApproved && (
+      {!loading && !error && paymentApproved && summary && (
         <>
           {/* ── İstatistik Kartları ── */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <StatCard
               label="Toplam Katilimci"
-              value={String(couple.participantCount)}
+              value={String(summary.participantCount)}
               accent="text-sage-dark"
             />
-            <StatCard label="Salon" value={venue.name} />
+            <StatCard label="Salon" value={summary.venueName} />
             <StatCard
               label="Etkinlik Saati"
-              value={`${couple.startTime} – ${couple.endTime}`}
+              value={`${summary.startTime} - ${summary.endTime}`}
               accent="text-gold"
             />
           </div>
@@ -104,11 +137,11 @@ export default function CiftPage() {
                     Etkinlik Detayi
                   </p>
                   <h2 className="font-display text-2xl font-semibold text-foreground mt-1">
-                    {couple.eventName}
+                    {summary.eventName}
                   </h2>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    {couple.eventDate} &mdash; {couple.startTime} /{" "}
-                    {couple.endTime}
+                    {summary.eventDate} &mdash; {summary.startTime} /{" "}
+                    {summary.endTime}
                   </p>
                 </div>
                 <div className="px-6 py-4 flex flex-wrap items-center gap-3">
@@ -119,7 +152,7 @@ export default function CiftPage() {
                   <p className="text-sm text-slate-500 ml-auto">
                     Giris yapan:{" "}
                     <strong className="text-foreground">
-                      {couple.loggedInAs}
+                      Cift Kullanici
                     </strong>
                   </p>
                 </div>
@@ -137,7 +170,7 @@ export default function CiftPage() {
                 </div>
                 <div className="p-5 flex flex-col items-center flex-grow">
                   <div className="w-full grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {mediaItems.slice(0, 9).map((item) => (
+                    {mediaPreview.map((item) => (
                       <article
                         key={item.id}
                         className="overflow-hidden rounded-xl border border-soft-border bg-cream hover:shadow-md transition-shadow"
@@ -149,7 +182,7 @@ export default function CiftPage() {
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                           />
-                          {item.type === "video" && (
+                          {item.type === "VIDEO" && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                               <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center transition-transform group-hover:scale-110">
                                 <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-foreground ml-0.5" />
@@ -196,7 +229,7 @@ export default function CiftPage() {
                   </h2>
                 </div>
                 <div className="p-5 space-y-2">
-                  {mockAppUsers.slice(0, 5).map((user) => {
+                  {participantsPreview.map((user) => {
                     const totalMedia = user.uploadedPhotos + user.uploadedVideos;
                     return (
                       <div
@@ -218,10 +251,10 @@ export default function CiftPage() {
                       </div>
                     );
                   })}
-                  {mockAppUsers.length > 5 && (
+                  {participants.length > 5 && (
                     <div className="pt-2 text-center">
                       <p className="text-xs text-slate-500 font-medium italic">
-                        + {mockAppUsers.length - 5} kisi daha...
+                        + {participants.length - 5} kisi daha...
                       </p>
                     </div>
                   )}
@@ -252,7 +285,7 @@ export default function CiftPage() {
                       Mekan
                     </p>
                     <p className="text-sm font-medium text-foreground mt-1">
-                      {venue.name}
+                      {summary.venueName}
                     </p>
                   </div>
                   <div>
@@ -260,7 +293,7 @@ export default function CiftPage() {
                       Sehir
                     </p>
                     <p className="text-sm font-medium text-foreground mt-1">
-                      {venue.city}
+                      {summary.venueCity}
                     </p>
                   </div>
                   <div>
@@ -268,7 +301,7 @@ export default function CiftPage() {
                       Paket
                     </p>
                     <p className="text-sm font-medium text-gold mt-1">
-                      {venue.monthlyPlan}
+                      {summary.venuePlan}
                     </p>
                   </div>
                 </div>

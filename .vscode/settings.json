@@ -1,0 +1,38 @@
+{
+  "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21",
+  "java.import.gradle.enabled": false,
+  "java.import.maven.enabled": true,
+  "maven.terminal.useJavaHome": true,
+  "maven.terminal.customEnv": [
+    {
+      "environmentVariable": "JAVA_HOME",
+      "value": "C:\\Program Files\\Java\\jdk-21"
+    }
+  ],
+  "java.errors.incompleteClasspath.severity": "ignore",
+  "java.autobuild.enabled": true,
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.project.importOnFirstTimeStartup": "automatic",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "C:\\Program Files\\Java\\jdk-21",
+      "default": true
+    },
+    {
+      "name": "JavaSE-17",
+      "path": "C:\\Program Files\\Java\\jdk-17"
+    }
+  ],
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/frontend/**",
+    "**/backend/.gradle/**",
+    "**/backend/build/**",
+    "**/awesome-claude-skills/**",
+    "**/claude-code/**",
+    "**/superpowers/**"
+  ],
+  "java.compile.nullAnalysis.mode": "automatic"
+}

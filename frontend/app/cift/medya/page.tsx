@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import AppHeader from "../../components/AppHeader";
-import { couple, mediaItems, MediaItem } from "../../mock-data";
+import { fetchEventMedia, getDefaultEventId, type MediaListItemResponse } from "../../lib/dashboard-api";
+
+type MediaItem = {
+  id: string;
+  type: "photo" | "video";
+  uploaderName?: string;
+  uploadedAt: string;
+  url: string;
+};
 
 const navItems = [
   { label: "Genel Bakis", href: "/cift" },
@@ -14,16 +22,48 @@ const navItems = [
 export default function MedyaPage() {
   const [filter, setFilter] = useState<"all" | "photo" | "video">("all");
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const run = async () => {
+      const eventId = getDefaultEventId();
+      if (!eventId) {
+        setError("NEXT_PUBLIC_DEFAULT_EVENT_ID ayarlanmalidir.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetchEventMedia(eventId);
+        const mapped: MediaItem[] = response.map((item: MediaListItemResponse): MediaItem => ({
+          id: item.id,
+          type: item.type === "VIDEO" ? "video" : "photo",
+          uploaderName: item.uploaderName,
+          uploadedAt: item.uploadedAt,
+          url: item.url,
+        }));
+        setMediaItems(mapped);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Medyalar alinamadi.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void run();
+  }, []);
 
   // Filtrelenmiş medya
-  const filteredMedia = mediaItems.filter(
+  const filteredMedia = useMemo(() => mediaItems.filter(
     (item) => filter === "all" || item.type === filter
-  );
+  ), [mediaItems, filter]);
 
   return (
     <>
       <AppHeader
-        name={couple.groomName}
+        name="Cift Paneli"
         initials="ES"
         subtitle="Cift Paneli"
         navItems={navItems}
@@ -77,6 +117,12 @@ export default function MedyaPage() {
 
         {/* CSS Grid Tabankli Masonry (Sag tarafta veya altlarda bosluk birakmayan yontem) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[250px] grid-flow-row-dense">
+          {loading && (
+            <p className="col-span-full text-sm text-slate-500">Medyalar yukleniyor...</p>
+          )}
+          {error && (
+            <p className="col-span-full text-sm text-rose-600">{error}</p>
+          )}
           {/* Medya Ogeleri */}
           {filteredMedia.map((item, index) => {
             // Asimetrik (Pinterest benzeri) görünüm için bazı kılıfları iki katı uzunlukta yapıyoruz

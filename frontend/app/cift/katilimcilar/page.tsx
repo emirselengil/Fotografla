@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import AppHeader from "../../components/AppHeader";
-import { couple, mockAppUsers, AppUser } from "../../mock-data";
+import { fetchEventParticipants, getDefaultEventId, type ParticipantListItemResponse } from "../../lib/dashboard-api";
+
+type AppUser = {
+  id: string;
+  name: string;
+  isAnonymous: boolean;
+  joinedAt: string;
+  uploadedPhotos: number;
+  uploadedVideos: number;
+};
 
 /* ── Navigasyon ─────────────────────────────────────────── */
 const navItems = [
@@ -34,20 +43,53 @@ function StatBox({ label, value, highlight = false, subtitle }: { label: string;
 export default function KatilimcilarPage() {
   const [filter, setFilter] = useState<"all" | "photos" | "videos">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const run = async () => {
+      const eventId = getDefaultEventId();
+      if (!eventId) {
+        setError("NEXT_PUBLIC_DEFAULT_EVENT_ID ayarlanmalidir.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetchEventParticipants(eventId);
+        const mapped = response.map((user: ParticipantListItemResponse) => ({
+          id: user.id,
+          name: user.name,
+          isAnonymous: user.isAnonymous,
+          joinedAt: user.joinedAt,
+          uploadedPhotos: user.uploadedPhotos,
+          uploadedVideos: user.uploadedVideos,
+        }));
+        setUsers(mapped);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Katilimcilar alinamadi.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void run();
+  }, []);
 
   // Istatistiklerin Hesaplanmasi
   const stats = useMemo(() => {
     return {
-      totalUsers: mockAppUsers.length,
-      totalPhotos: mockAppUsers.reduce((acc, u) => acc + u.uploadedPhotos, 0),
-      totalVideos: mockAppUsers.reduce((acc, u) => acc + u.uploadedVideos, 0),
-      anonymousUsers: mockAppUsers.filter(u => u.isAnonymous).length,
+      totalUsers: users.length,
+      totalPhotos: users.reduce((acc, u) => acc + u.uploadedPhotos, 0),
+      totalVideos: users.reduce((acc, u) => acc + u.uploadedVideos, 0),
+      anonymousUsers: users.filter(u => u.isAnonymous).length,
     };
-  }, []);
+  }, [users]);
 
   // Filtreme ve Arama
   const displayUsers = useMemo(() => {
-    return mockAppUsers.filter((u) => {
+    return users.filter((u) => {
       let matchesFilter = true;
       if (filter === "photos") matchesFilter = u.uploadedPhotos > 0;
       if (filter === "videos") matchesFilter = u.uploadedVideos > 0;
@@ -55,7 +97,13 @@ export default function KatilimcilarPage() {
       const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
-  }, [filter, searchQuery]);
+  }, [users, filter, searchQuery]);
+
+  const filterOptions: Array<{ id: "all" | "photos" | "videos"; label: string }> = [
+    { id: "all", label: "Tumu" },
+    { id: "photos", label: "Fotograf Ekleyenler" },
+    { id: "videos", label: "Video Ekleyenler" },
+  ];
 
   // Isimden bas harfleri alma fonksiyonu (Avatar icin)
   const getInitials = (name: string, isAnon: boolean) => {
@@ -70,7 +118,7 @@ export default function KatilimcilarPage() {
 
   return (
     <AppHeader
-      name={couple.groomName}
+      name="Cift Paneli"
       initials="ES"
       subtitle="Cift Paneli"
       navItems={navItems}
@@ -114,14 +162,10 @@ export default function KatilimcilarPage() {
             <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 w-full">
                 {/* Durum Filtreleri */}
                 <div className="flex items-center bg-white border border-soft-border rounded-xl p-1 overflow-x-auto">
-                    {[
-                        { id: "all", label: "Tumu" },
-                        { id: "photos", label: "Fotograf Ekleyenler" },
-                        { id: "videos", label: "Video Ekleyenler" },
-                    ].map((btn) => (
+                    {filterOptions.map((btn) => (
                         <button
                             key={btn.id}
-                            onClick={() => setFilter(btn.id as any)}
+                        onClick={() => setFilter(btn.id)}
                             className={`px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                                 filter === btn.id ? "bg-sage-light/50 text-sage-dark" : "text-slate-500 hover:text-foreground hover:bg-slate-50"
                             }`}
@@ -136,6 +180,14 @@ export default function KatilimcilarPage() {
 
         {/* Kullanici Listesi (List Cards) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {loading && (
+              <div className="col-span-full py-6 text-sm text-slate-500">Katilimcilar yukleniyor...</div>
+            )}
+
+            {error && (
+              <div className="col-span-full py-6 text-sm text-rose-600">{error}</div>
+            )}
+
             {displayUsers.map((user) => {
                 const totalMedia = user.uploadedPhotos + user.uploadedVideos;
 

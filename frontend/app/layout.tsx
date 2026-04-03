@@ -19,8 +19,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Fotografla UI Mock",
-  description: "Fotografla wedding venue frontend prototype",
+  title: "Fotografla",
+  description: "Fotografla wedding media platform",
 };
 
 export default function RootLayout({

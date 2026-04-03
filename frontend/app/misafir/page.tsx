@@ -1,28 +1,54 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, type DragEvent, type FormEvent } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, type DragEvent, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { venue, mockEvents, type WeddingEvent } from "../mock-data";
 import AppHeader from "../components/AppHeader";
 
-/* ── Geçerli Mock Salon Kodları ─────────────────────────── */
-/* QR kod salona özeldir, etkinliğe değil.
-   Okutulduğunda sistem o salonun takviminde aktif olan etkinliği bulur. */
-const VALID_SALON_CODES = ["eskisehir-dugun-salonu", "fotografla", "demo"];
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
-/* ── Aktif etkinliği bul ────────────────────────────────── */
-function findActiveEvent(): WeddingEvent | null {
-  return mockEvents.find((e) => e.status === "active") ?? null;
-}
+type ResolveResponse = {
+  qrCodeId: string;
+  venueId: string;
+  venueName: string;
+  codeValue: string;
+  activeEventId: string | null;
+  activeEventTitle: string | null;
+  hasActiveEvent: boolean;
+};
 
-/* ── Çift isimlerini ayır ("Emir Selengil & Saliha Goray" → [groom, bride]) ── */
-function parseCoupleName(coupleName: string): { groomName: string; brideName: string } {
-  const parts = coupleName.split(" & ");
-  return {
-    groomName: parts[0]?.trim() ?? "Damat",
-    brideName: parts[1]?.trim() ?? "Gelin",
-  };
+type GuestSessionResponse = {
+  id: string;
+};
+
+type PresignResponse = {
+  objectKey: string;
+  uploadUrl: string;
+};
+
+async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers ?? {});
+  headers.set("Content-Type", "application/json");
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers,
+  });
+
+  if (!response.ok) {
+    let message = `Request failed with status ${response.status}`;
+    try {
+      const payload = (await response.json()) as { error?: string };
+      if (payload?.error) {
+        message = payload.error;
+      }
+    } catch {
+      // Response body may not be JSON; use default message.
+    }
+    throw new Error(message);
+  }
+
+  return (await response.json()) as T;
 }
 
 /* ── Yardımcı: Dosya boyutu formatlama ──────────────────── */
@@ -93,16 +119,21 @@ function FilePreviewCard({
   file: File;
   onRemove: () => void;
 }) {
-  const [preview, setPreview] = useState<string | null>(null);
   const isVideo = file.type.startsWith("video/");
+  const preview = useMemo(() => {
+    if (isVideo) {
+      return null;
+    }
+    return URL.createObjectURL(file);
+  }, [file, isVideo]);
 
   useEffect(() => {
-    if (!isVideo) {
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [file, isVideo]);
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
 
   return (
     <div className="group relative bg-white rounded-xl border border-soft-border overflow-hidden shadow-sm animate-[fadeSlideUp_0.3s_ease-out] hover:shadow-md transition-shadow">
@@ -143,24 +174,84 @@ function FilePreviewCard({
 function MisafirYuklemeContent() {
   const searchParams = useSearchParams();
   const salonCode = searchParams.get("salon");
-  const isAuthorized = salonCode !== null && VALID_SALON_CODES.includes(salonCode);
-
-  const activeEvent = findActiveEvent();
+  const hasSalonCode = typeof salonCode === "string" && salonCode.trim().length > 0;
 
   const [step, setStep] = useState<"welcome" | "upload">("welcome");
+  const [resolveData, setResolveData] = useState<ResolveResponse | null>(null);
+  const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [pageError, setPageError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastUploadCount, setLastUploadCount] = useState(0);
   const [totalUploaded, setTotalUploaded] = useState({ photos: 0, videos: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleJoin = (e: FormEvent<HTMLFormElement>) => {
+  const isAuthorized = hasSalonCode && resolveData !== null;
+  const hasActiveEvent = Boolean(resolveData?.hasActiveEvent && resolveData.activeEventId);
+
+  useEffect(() => {
+    if (!hasSalonCode || !salonCode) {
+      setResolveData(null);
+      setPageError("");
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      setIsPageLoading(true);
+      setPageError("");
+      try {
+        const response = await apiRequest<ResolveResponse>(`/api/v1/guest/resolve?code=${encodeURIComponent(salonCode)}`);
+        if (!cancelled) {
+          setResolveData(response);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setResolveData(null);
+          setPageError(requestError instanceof Error ? requestError.message : "QR kod cozulurken hata olustu.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsPageLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasSalonCode, salonCode]);
+
+  const handleJoin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setStep("upload");
+    if (!salonCode || !resolveData) {
+      return;
+    }
+
+    try {
+      const session = await apiRequest<GuestSessionResponse>("/api/v1/guest/sessions", {
+        method: "POST",
+        body: JSON.stringify({
+          qrCodeValue: salonCode,
+          eventId: resolveData.activeEventId,
+          guestDisplayName: name.trim() || null,
+          isAnonymous: name.trim().length === 0,
+        }),
+      });
+
+      setGuestSessionId(session.id);
+      setStep("upload");
+    } catch (requestError) {
+      setPageError(requestError instanceof Error ? requestError.message : "Oturum baslatilamadi.");
+    }
   };
 
   const handleFiles = useCallback((files: FileList | null) => {
@@ -192,45 +283,90 @@ function MisafirYuklemeContent() {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleUpload = () => {
-    if (selectedFiles.length === 0) return;
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0 || !resolveData?.activeEventId || !guestSessionId) {
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(0);
     setShowSuccess(false);
+    setPageError("");
 
-    const totalSteps = 20;
-    let currentStep = 0;
+    try {
+      let uploadedPhotos = 0;
+      let uploadedVideos = 0;
 
-    const interval = setInterval(() => {
-      currentStep++;
-      setUploadProgress(Math.round((currentStep / totalSteps) * 100));
+      for (let i = 0; i < selectedFiles.length; i += 1) {
+        const file = selectedFiles[i];
+        const mediaType = file.type.startsWith("image/") ? "photo" : "video";
 
-      if (currentStep >= totalSteps) {
-        clearInterval(interval);
+        const presign = await apiRequest<PresignResponse>("/api/v1/media/presign", {
+          method: "POST",
+          body: JSON.stringify({
+            eventId: resolveData.activeEventId,
+            guestSessionId,
+            originalFilename: file.name,
+            mimeType: file.type || "application/octet-stream",
+            sizeBytes: file.size,
+            mediaType,
+          }),
+        });
 
-        const photos = selectedFiles.filter((f) => f.type.startsWith("image/")).length;
-        const videos = selectedFiles.filter((f) => f.type.startsWith("video/")).length;
+        if (/^https?:\/\//.test(presign.uploadUrl)) {
+          await fetch(presign.uploadUrl, {
+            method: "PUT",
+            body: file,
+            headers: {
+              "Content-Type": file.type || "application/octet-stream",
+            },
+          });
+        }
 
-        setTotalUploaded((prev) => ({
-          photos: prev.photos + photos,
-          videos: prev.videos + videos,
-        }));
-        setLastUploadCount(selectedFiles.length);
-        setSelectedFiles([]);
-        setIsUploading(false);
-        setUploadProgress(0);
-        setShowSuccess(true);
+        await apiRequest("/api/v1/media/complete", {
+          method: "POST",
+          body: JSON.stringify({
+            eventId: resolveData.activeEventId,
+            guestSessionId,
+            objectKey: presign.objectKey,
+            originalFilename: file.name,
+            mimeType: file.type || "application/octet-stream",
+            sizeBytes: file.size,
+            mediaType,
+          }),
+        });
+
+        if (mediaType === "photo") {
+          uploadedPhotos += 1;
+        } else {
+          uploadedVideos += 1;
+        }
+
+        setUploadProgress(Math.round(((i + 1) / selectedFiles.length) * 100));
       }
-    }, 80);
+
+      setTotalUploaded((prev) => ({
+        photos: prev.photos + uploadedPhotos,
+        videos: prev.videos + uploadedVideos,
+      }));
+      setLastUploadCount(selectedFiles.length);
+      setSelectedFiles([]);
+      setShowSuccess(true);
+    } catch (requestError) {
+      setPageError(requestError instanceof Error ? requestError.message : "Yukleme sirasinda hata olustu.");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const headerInitials = name ? name.charAt(0).toUpperCase() : "A";
-  const headerName = !isAuthorized
+  const headerName = !hasSalonCode
     ? "Erişim Kısıtlı"
-    : (!activeEvent ? "Misafir Portalı" : activeEvent.coupleName);
-  const headerSubtitle = !isAuthorized
+    : (!hasActiveEvent ? "Misafir Portalı" : (resolveData?.activeEventTitle ?? "Misafir Portalı"));
+  const headerSubtitle = !hasSalonCode
     ? "Lütfen QR kodu okutun"
-    : (!activeEvent ? venue.name : `${venue.name} — ${activeEvent.date}`);
+    : (hasActiveEvent ? (resolveData?.venueName ?? "Salon") : `${resolveData?.venueName ?? "Salon"} — aktif etkinlik bekleniyor`);
 
   return (
     <AppHeader
@@ -239,8 +375,17 @@ function MisafirYuklemeContent() {
       initials={headerInitials}
       navItems={[]}
       hideProfile={true}
-      variant={activeEvent && isAuthorized ? "hero" : "dashboard"}
+      variant={hasActiveEvent && isAuthorized ? "hero" : "dashboard"}
     >
+      {isPageLoading && (
+        <div className="max-w-md mx-auto mt-6 md:mt-10">
+          <section className="bg-cream rounded-2xl border border-soft-border p-6 md:p-10 text-center animate-[fadeSlideUp_0.5s_ease-out]">
+            <div className="w-8 h-8 border-2 border-sage border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-sm text-slate-500">QR kod dogrulaniyor...</p>
+          </section>
+        </div>
+      )}
+
       {!isAuthorized && (
         <div className="max-w-md mx-auto mt-6 md:mt-10">
           <section className="bg-cream rounded-2xl border border-soft-border p-6 md:p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.5s_ease-out]">
@@ -254,11 +399,16 @@ function MisafirYuklemeContent() {
             <p className="text-sm text-slate-500 leading-relaxed mb-6 relative z-10">
               Bu sayfaya yalnızca düğün mekanındaki <strong className="text-sage-dark">QR kodu okutarak</strong> erişebilirsiniz.
             </p>
+            {pageError && (
+              <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2 relative z-10">
+                {pageError}
+              </p>
+            )}
           </section>
         </div>
       )}
 
-      {isAuthorized && !activeEvent && (
+      {isAuthorized && !hasActiveEvent && (
         <div className="max-w-md mx-auto mt-6 md:mt-10">
           <section className="bg-cream rounded-2xl border border-soft-border p-6 md:p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.5s_ease-out]">
             <FloralCornerTopLeft />
@@ -280,7 +430,7 @@ function MisafirYuklemeContent() {
         </div>
       )}
 
-      {isAuthorized && activeEvent && step === "welcome" && (
+      {isAuthorized && hasActiveEvent && step === "welcome" && (
         <div className="max-w-md mx-auto mt-6 md:mt-10">
           <section className="bg-cream rounded-2xl border border-soft-border p-6 md:p-10 text-center relative overflow-hidden animate-[fadeSlideUp_0.6s_ease-out]">
             <FloralCornerTopLeft />
@@ -311,13 +461,19 @@ function MisafirYuklemeContent() {
                   <CameraIcon className="w-5 h-5" />
                   Galeriye Katıl
                 </button>
+
+                {pageError && (
+                  <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2 mt-3">
+                    {pageError}
+                  </p>
+                )}
               </form>
             </div>
           </section>
         </div>
       )}
 
-      {isAuthorized && activeEvent && step === "upload" && (
+      {isAuthorized && hasActiveEvent && step === "upload" && (
         <div className="grid gap-6 lg:grid-cols-3 animate-[fadeSlideUp_0.4s_ease-out]">
 
           {/* Sol Kolon - Sürükle Bırak ve Önizleme */}
@@ -417,11 +573,17 @@ function MisafirYuklemeContent() {
 
                 <button
                   onClick={handleUpload}
-                  disabled={isUploading || selectedFiles.length === 0}
+                  disabled={isUploading || selectedFiles.length === 0 || !guestSessionId}
                   className="w-full bg-sage hover:bg-sage-dark text-white font-medium py-3 rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isUploading ? `Yükleniyor... %${uploadProgress}` : "Medyaları Yükle"}
                 </button>
+
+                {pageError && (
+                  <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                    {pageError}
+                  </p>
+                )}
 
                 {isUploading && (
                   <div className="w-full bg-sage-light rounded-full h-2 mt-2">
@@ -443,6 +605,10 @@ function MisafirYuklemeContent() {
                 <div className="flex justify-between border-b border-soft-border pb-2">
                   <span className="text-slate-500">Yüklenen Fotoğraf:</span>
                   <span className="font-medium">{totalUploaded.photos}</span>
+                </div>
+                <div className="flex justify-between border-b border-soft-border pb-2">
+                  <span className="text-slate-500">Oturum ID:</span>
+                  <span className="font-medium truncate max-w-[170px]" title={guestSessionId ?? ""}>{guestSessionId ?? "-"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Yüklenen Video:</span>

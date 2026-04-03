@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
+import { clearAuth } from "../lib/auth";
 
 type NavItem = { label: string; href: string };
 
@@ -100,6 +101,7 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
                 </Link>
                 <Link
                   href="/"
+                  onClick={clearAuth}
                   className="hidden sm:block text-xs text-slate-500 border border-soft-border rounded-lg px-3 py-1.5 hover:bg-sage-light transition ml-2"
                 >
                   Cikis
@@ -171,6 +173,7 @@ export default function AppHeader({ name, initials, subtitle, navItems, children
                   </div>
                   <Link
                     href="/"
+                    onClick={clearAuth}
                     className="text-xs text-rose-500 font-medium px-4 py-2 bg-rose-50 rounded-xl hover:bg-rose-100 transition"
                   >
                     Cikis
