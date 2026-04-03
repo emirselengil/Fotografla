@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 public interface MediaAssetRepository extends JpaRepository<MediaAssetEntity, UUID> {
 	List<MediaAssetEntity> findByEventIdOrderByUploadedAtDesc(UUID eventId);
 
+	java.util.Optional<MediaAssetEntity> findFirstByObjectKeyOrderByUploadedAtDesc(String objectKey);
+
 	long countByVenueId(UUID venueId);
 
 	long countByVenueIdAndUploadedAtAfter(UUID venueId, OffsetDateTime uploadedAt);

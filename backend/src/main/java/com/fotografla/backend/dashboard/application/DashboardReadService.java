@@ -10,6 +10,8 @@ import com.fotografla.backend.venue.domain.VenueEntity;
 import com.fotografla.backend.venue.domain.VenueRepository;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -104,7 +106,7 @@ public class DashboardReadService {
                     item.getMediaType().toUpperCase(Locale.ROOT),
                     uploaderName,
                     item.getUploadedAt().atZoneSameInstant(ZoneOffset.UTC).format(hhmm),
-                    "/uploads/" + item.getObjectKey());
+                    "/api/v1/media/object?objectKey=" + URLEncoder.encode(item.getObjectKey(), StandardCharsets.UTF_8));
         }).toList();
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppHeader from "../../components/AppHeader";
 import { fetchVenueEvents, type VenueEventItemResponse } from "../../lib/salon-api";
 import { fetchMySalonProfile } from "../../lib/profile-api";
@@ -24,6 +24,8 @@ const filterButtons: Array<{ id: EventFilter; label: string }> = [
   { id: "cancelled", label: "Iptal" },
 ];
 
+const AUTO_REFRESH_INTERVAL_MS = 15000;
+
 function mapStatus(status: VenueEventItemResponse["status"]): EventFilter {
   if (status === "ACTIVE") return "active";
   if (status === "PLANNED") return "planned";
@@ -38,23 +40,65 @@ export default function EtkinliklerPage() {
   const [currentUserName] = useState(() => getStoredUserName() || "Salon");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const isReloadingRef = useRef(false);
+
+  const reload = useCallback(async () => {
+    if (!venueId) {
+      return;
+    }
+
+    if (isReloadingRef.current) {
+      return;
+    }
+    isReloadingRef.current = true;
+
+    try {
+      const response = await fetchVenueEvents(venueId);
+      setEvents(response);
+      setError("");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Etkinlikler alinamadi.");
+    } finally {
+      isReloadingRef.current = false;
+      setLoading(false);
+    }
+  }, [venueId]);
 
   useEffect(() => {
     const run = async () => {
       try {
         const mySalon = await fetchMySalonProfile();
-        const venueId = mySalon.venueId;
-        const response = await fetchVenueEvents(venueId);
-        setEvents(response);
+        setVenueId(mySalon.venueId);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Etkinlikler alinamadi.");
-      } finally {
         setLoading(false);
       }
     };
 
     void run();
   }, []);
+
+  useEffect(() => {
+    if (!venueId) {
+      return;
+    }
+    void reload();
+  }, [venueId, reload]);
+
+  useEffect(() => {
+    if (!venueId) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void reload();
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [venueId, reload]);
 
   const displayed = useMemo(() => {
     return events.filter((event) => {
@@ -74,7 +118,7 @@ export default function EtkinliklerPage() {
         </div>
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-cream p-3 rounded-2xl border border-soft-border shadow-sm">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative w-full lg:flex-1 lg:max-w-md">
             <input
               type="text"
               placeholder="Cift/etkinlik adi ile ara..."
@@ -84,8 +128,8 @@ export default function EtkinliklerPage() {
             />
           </div>
 
-          <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 w-full">
-            <div className="flex items-center bg-white border border-soft-border rounded-xl p-1 overflow-x-auto">
+          <div className="flex flex-col sm:flex-row lg:flex-nowrap sm:items-center justify-between gap-3 w-full lg:w-auto lg:flex-none">
+            <div className="flex items-center w-full sm:w-auto bg-white border border-soft-border rounded-xl p-1 overflow-x-auto">
               {filterButtons.map((btn) => (
                 <button
                   key={btn.id}
@@ -99,7 +143,7 @@ export default function EtkinliklerPage() {
               ))}
             </div>
 
-            <Link href="/salon/etkinlikler/yeni" className="flex items-center gap-2 bg-sage hover:bg-sage-dark text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-sm whitespace-nowrap">
+            <Link href="/salon/etkinlikler/yeni" className="flex w-full sm:w-auto justify-center items-center gap-2 bg-sage hover:bg-sage-dark text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-sm whitespace-nowrap">
               <span>Yeni Etkinlik</span>
             </Link>
           </div>

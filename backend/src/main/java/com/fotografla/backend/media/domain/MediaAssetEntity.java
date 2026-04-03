@@ -50,6 +50,10 @@ public class MediaAssetEntity {
     @Column(name = "mime_type", nullable = false)
     private String mimeType;
 
+    @JdbcTypeCode(Types.VARBINARY)
+    @Column(name = "content_bytes")
+    private byte[] contentBytes;
+
     @Column(name = "size_bytes", nullable = false)
     private Long sizeBytes;
 

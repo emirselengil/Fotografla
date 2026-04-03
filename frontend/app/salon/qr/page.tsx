@@ -34,6 +34,12 @@ export default function QRYonetimiPage() {
   const [venueId, setVenueId] = useState<string | null>(null);
   const [currentUserName] = useState(() => getStoredUserName() || "Salon");
 
+  const guestPortalBaseUrl = (process.env.NEXT_PUBLIC_GUEST_PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
+
+  const qrTargetUrl = dashboard?.codeValue
+    ? `${(guestPortalBaseUrl || (typeof window !== "undefined" ? window.location.origin : "")).replace(/\/$/, "")}/misafir?salon=${encodeURIComponent(dashboard.codeValue)}`
+    : null;
+
   const load = useCallback(async () => {
     if (!venueId) {
       setError("Aktif kullaniciya ait salon bulunamadi.");
@@ -94,13 +100,13 @@ export default function QRYonetimiPage() {
     let cancelled = false;
 
     const run = async () => {
-      if (!dashboard?.codeValue) {
+      if (!qrTargetUrl) {
         setQrImageUrl(null);
         return;
       }
 
       try {
-        const dataUrl = await QRCode.toDataURL(dashboard.codeValue, {
+        const dataUrl = await QRCode.toDataURL(qrTargetUrl, {
           width: 720,
           margin: 1,
           color: {
@@ -124,7 +130,7 @@ export default function QRYonetimiPage() {
     return () => {
       cancelled = true;
     };
-  }, [dashboard?.codeValue]);
+  }, [qrTargetUrl]);
 
   const downloadPng = () => {
     if (!qrImageUrl || !dashboard?.codeValue) {
@@ -207,6 +213,10 @@ export default function QRYonetimiPage() {
               <div className="bg-white p-4 rounded-xl border border-soft-border mb-4">
                 <p className="text-sm text-slate-500">QR Kod Degeri</p>
                 <p className="font-mono text-foreground mt-1 break-all">{dashboard.codeValue}</p>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-soft-border mb-4">
+                <p className="text-sm text-slate-500">Yonlendirme URL</p>
+                <p className="font-mono text-foreground mt-1 break-all">{qrTargetUrl ?? "-"}</p>
               </div>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <button

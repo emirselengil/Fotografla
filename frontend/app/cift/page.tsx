@@ -17,6 +17,18 @@ import {
 import { getStoredUserName } from "../lib/auth";
 import { buildInitials } from "../lib/user-display";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+
+function resolveMediaUrl(url: string): string {
+  if (/^https?:\/\//.test(url)) {
+    return url;
+  }
+  if (!url.startsWith("/")) {
+    return `${API_BASE_URL}/${url}`;
+  }
+  return `${API_BASE_URL}${url}`;
+}
+
 /* ── Nav ─────────────────────────────────────────── */
 const navItems = [
   { label: "Genel Bakis", href: "/cift" },
@@ -231,12 +243,22 @@ export default function CiftPage() {
                         className="overflow-hidden rounded-xl border border-soft-border bg-cream hover:shadow-md transition-shadow"
                       >
                         <div className="relative h-28 w-full group">
-                          <Image
-                            src={item.url}
-                            alt={item.id}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
+                          {item.type === "PHOTO" ? (
+                            <Image
+                              src={resolveMediaUrl(item.url)}
+                              alt={item.id}
+                              fill
+                              unoptimized
+                              className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          ) : (
+                            <video
+                              src={resolveMediaUrl(item.url)}
+                              className="h-full w-full object-cover"
+                              muted
+                              playsInline
+                            />
+                          )}
                           {item.type === "VIDEO" && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                               <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center transition-transform group-hover:scale-110">

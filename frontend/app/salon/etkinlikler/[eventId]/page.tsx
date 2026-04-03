@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import AppHeader from "../../../components/AppHeader";
-import { fetchEventDetail, updateEventPaymentStatus, type EventResponse } from "../../../lib/salon-api";
+import { fetchEventDetail, updateEventPaymentStatus, updateEventStatus, type EventResponse } from "../../../lib/salon-api";
 import { getStoredUserName } from "../../../lib/auth";
 import { buildInitials } from "../../../lib/user-display";
 
@@ -28,10 +28,11 @@ export default function SalonEtkinlikDetayPage() {
   const [eventDetail, setEventDetail] = useState<EventResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState("");
   const [currentUserName] = useState(() => getStoredUserName() || "Salon");
 
-  const loadDetail = async () => {
+  const loadDetail = useCallback(async () => {
     if (!eventId) {
       setError("Etkinlik ID bulunamadi.");
       setIsLoading(false);
@@ -48,11 +49,11 @@ export default function SalonEtkinlikDetayPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [eventId]);
 
   useEffect(() => {
     void loadDetail();
-  }, [eventId]);
+  }, [loadDetail]);
 
   const handlePayment = async (paymentStatus: "approved" | "rejected") => {
     if (!eventDetail) {
@@ -68,6 +69,28 @@ export default function SalonEtkinlikDetayPage() {
       setError(requestError instanceof Error ? requestError.message : "Odeme durumu guncellenemedi.");
     } finally {
       setIsUpdatingPayment(false);
+    }
+  };
+
+  const handleCancelEvent = async () => {
+    if (!eventDetail) {
+      return;
+    }
+
+    const isConfirmed = window.confirm("Bu etkinligi iptal etmek istediginize emin misiniz?");
+    if (!isConfirmed) {
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    try {
+      const response = await updateEventStatus(eventDetail.id, "cancelled");
+      setEventDetail(response);
+      setError("");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Etkinlik iptal edilemedi.");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -127,6 +150,16 @@ export default function SalonEtkinlikDetayPage() {
               >
                 Odemeyi Reddet
               </button>
+              {eventDetail.status !== "cancelled" && eventDetail.status !== "completed" && (
+                <button
+                  type="button"
+                  disabled={isUpdatingStatus}
+                  onClick={() => void handleCancelEvent()}
+                  className="rounded-xl border border-soft-border bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  {isUpdatingStatus ? "Isleniyor..." : "Etkinligi Iptal Et"}
+                </button>
+              )}
             </div>
           </section>
         )}

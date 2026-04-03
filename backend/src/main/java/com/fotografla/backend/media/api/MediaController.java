@@ -4,16 +4,23 @@ import com.fotografla.backend.media.application.MediaService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.GetMapping;
 
 @RestController
 @RequestMapping("/v1/media")
@@ -34,6 +41,30 @@ public class MediaController {
                 request.mimeType(),
                 request.sizeBytes(),
                 request.mediaType()));
+    }
+
+    @PutMapping(value = "/upload", consumes = MediaType.ALL_VALUE)
+    public ResponseEntity<Void> upload(
+            @RequestParam("objectKey") String objectKey,
+            HttpServletRequest request) throws IOException {
+        mediaService.uploadObject(objectKey, request.getInputStream());
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @GetMapping("/object")
+    public ResponseEntity<byte[]> object(@RequestParam("objectKey") String objectKey) {
+        MediaService.MediaObjectResponse response = mediaService.readObject(objectKey);
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+
+        try {
+            mediaType = MediaType.parseMediaType(response.contentType());
+        } catch (IllegalArgumentException ignored) {
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .body(response.bytes());
     }
 
     @PostMapping("/complete")

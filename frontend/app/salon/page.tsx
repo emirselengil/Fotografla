@@ -2,7 +2,7 @@
 
 import AppHeader from "../components/AppHeader";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchVenueEvents, updateEventStatus, type VenueEventItemResponse } from "../lib/salon-api";
 import { fetchMySalonProfile } from "../lib/profile-api";
 import { getStoredUserName } from "../lib/auth";
@@ -13,6 +13,8 @@ const navItems = [
   { label: "Etkinlikler", href: "/salon/etkinlikler" },
   { label: "QR Yonetimi", href: "/salon/qr" },
 ];
+
+const AUTO_REFRESH_INTERVAL_MS = 15000;
 
 function StatCard({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
@@ -36,6 +38,7 @@ export default function SalonPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentUserName] = useState(() => getStoredUserName() || "Salon");
+  const isReloadingRef = useRef(false);
 
   const [venueId, setVenueId] = useState<string | null>(null);
 
@@ -46,6 +49,11 @@ export default function SalonPage() {
       return;
     }
 
+    if (isReloadingRef.current) {
+      return;
+    }
+    isReloadingRef.current = true;
+
     try {
       const response = await fetchVenueEvents(venueId);
       setEvents(response);
@@ -53,6 +61,7 @@ export default function SalonPage() {
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Etkinlikler alinamadi.");
     } finally {
+      isReloadingRef.current = false;
       setLoading(false);
     }
   }, [venueId]);
@@ -78,6 +87,20 @@ export default function SalonPage() {
     void reload();
   }, [venueId, reload]);
 
+  useEffect(() => {
+    if (!venueId) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void reload();
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [venueId, reload]);
+
   const activeEvent = useMemo(() => events.find((event) => event.status === "ACTIVE") ?? null, [events]);
   const stats = useMemo(() => {
     const participantTotal = events.reduce((sum, event) => sum + event.pax, 0);
@@ -86,7 +109,14 @@ export default function SalonPage() {
     return { participantTotal, activeCount, completedCount };
   }, [events]);
 
-  const handleStatus = async (eventId: string, status: "active" | "completed") => {
+  const handleStatus = async (eventId: string, status: "active" | "completed" | "cancelled") => {
+    if (status === "cancelled") {
+      const isConfirmed = window.confirm("Bu etkinligi iptal etmek istediginize emin misiniz?");
+      if (!isConfirmed) {
+        return;
+      }
+    }
+
     try {
       await updateEventStatus(eventId, status);
       await reload();
@@ -126,6 +156,12 @@ export default function SalonPage() {
               </span>
               {activeEvent && (
                 <div className="flex gap-2 ml-auto">
+                  <button
+                    onClick={() => void handleStatus(activeEvent.id, "cancelled")}
+                    className="rounded-xl border border-soft-border bg-white text-sm font-medium text-slate-600 px-4 py-2 hover:bg-slate-50 transition"
+                  >
+                    Etkinligi Iptal Et
+                  </button>
                   <button
                     onClick={() => void handleStatus(activeEvent.id, "completed")}
                     className="rounded-xl bg-blush text-white text-sm font-medium px-4 py-2 hover:opacity-90 transition"
@@ -168,14 +204,24 @@ export default function SalonPage() {
                         <span className="rounded-full bg-sage-light text-sage-dark text-xs font-semibold px-2.5 py-1">{event.status}</span>
                       </td>
                       <td className="px-4 py-4">
-                        {event.status !== "ACTIVE" && (
-                          <button
-                            onClick={() => void handleStatus(event.id, "active")}
-                            className="rounded-xl bg-sage text-white text-xs font-medium px-3 py-1.5 hover:bg-sage-dark transition"
-                          >
-                            Baslat
-                          </button>
-                        )}
+                        <div className="flex flex-wrap gap-2">
+                          {event.status !== "ACTIVE" && event.status !== "CANCELLED" && event.status !== "COMPLETED" && (
+                            <button
+                              onClick={() => void handleStatus(event.id, "active")}
+                              className="rounded-xl bg-sage text-white text-xs font-medium px-3 py-1.5 hover:bg-sage-dark transition"
+                            >
+                              Baslat
+                            </button>
+                          )}
+                          {event.status !== "CANCELLED" && event.status !== "COMPLETED" && (
+                            <button
+                              onClick={() => void handleStatus(event.id, "cancelled")}
+                              className="rounded-xl border border-soft-border bg-white text-xs font-medium text-slate-600 px-3 py-1.5 hover:bg-slate-50 transition"
+                            >
+                              Iptal Et
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

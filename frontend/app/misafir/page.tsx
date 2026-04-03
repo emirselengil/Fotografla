@@ -119,13 +119,15 @@ function FilePreviewCard({
   file: File;
   onRemove: () => void;
 }) {
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
   const isVideo = file.type.startsWith("video/");
+  const isPreviewableImage = file.type.startsWith("image/") && !file.type.includes("heic") && !file.type.includes("heif");
   const preview = useMemo(() => {
-    if (isVideo) {
+    if (isVideo || !isPreviewableImage) {
       return null;
     }
     return URL.createObjectURL(file);
-  }, [file, isVideo]);
+  }, [file, isVideo, isPreviewableImage]);
 
   useEffect(() => {
     return () => {
@@ -135,19 +137,39 @@ function FilePreviewCard({
     };
   }, [preview]);
 
+  const showImagePreview = Boolean(preview && failedPreviewUrl !== preview);
+
   return (
     <div className="group relative bg-white rounded-xl border border-soft-border overflow-hidden shadow-sm animate-[fadeSlideUp_0.3s_ease-out] hover:shadow-md transition-shadow">
       <div className="aspect-square bg-cream flex items-center justify-center overflow-hidden">
-        {preview ? (
+        {showImagePreview ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt={file.name} className="w-full h-full object-cover" />
+          <img
+            src={preview ?? undefined}
+            alt={file.name}
+            className="w-full h-full object-cover"
+            onError={() => setFailedPreviewUrl(preview)}
+          />
         ) : (
           <div className="flex flex-col items-center gap-2 text-sage">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <polygon points="23 7 16 12 23 17 23 7" />
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-            </svg>
-            <span className="text-xs font-medium text-sage-dark">🎬 Video</span>
+            {isVideo ? (
+              <>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                <span className="text-xs font-medium text-sage-dark">Video</span>
+              </>
+            ) : (
+              <>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+                <span className="text-xs font-medium text-sage-dark">Onizleme yok</span>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -313,14 +335,20 @@ function MisafirYuklemeContent() {
           }),
         });
 
-        if (/^https?:\/\//.test(presign.uploadUrl)) {
-          await fetch(presign.uploadUrl, {
-            method: "PUT",
-            body: file,
-            headers: {
-              "Content-Type": file.type || "application/octet-stream",
-            },
-          });
+        const uploadUrl = /^https?:\/\//.test(presign.uploadUrl)
+          ? presign.uploadUrl
+          : `${API_BASE_URL}${presign.uploadUrl.startsWith("/") ? "" : "/"}${presign.uploadUrl}`;
+
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("Dosya depoya yuklenemedi.");
         }
 
         await apiRequest("/api/v1/media/complete", {

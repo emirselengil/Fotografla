@@ -92,12 +92,16 @@ export default function KatilimcilarPage() {
 
   // Filtreme ve Arama
   const displayUsers = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase("tr-TR");
+
     return users.filter((u) => {
       let matchesFilter = true;
       if (filter === "photos") matchesFilter = u.uploadedPhotos > 0;
       if (filter === "videos") matchesFilter = u.uploadedVideos > 0;
 
-      const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = normalizedQuery.length === 0
+        ? true
+        : u.name.toLocaleLowerCase("tr-TR").includes(normalizedQuery);
       return matchesFilter && matchesSearch;
     });
   }, [users, filter, searchQuery]);
@@ -148,7 +152,7 @@ export default function KatilimcilarPage() {
         {/* Aksiyon ve Filtreleme Cubugu */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-cream p-3 rounded-2xl border border-soft-border shadow-sm">
             {/* Arama */}
-            <div className="relative flex-1 max-w-md">
+          <div className="relative w-full lg:flex-1 lg:max-w-md">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -162,9 +166,9 @@ export default function KatilimcilarPage() {
                 />
             </div>
 
-            <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 w-full">
+            <div className="flex flex-col sm:flex-row lg:flex-nowrap sm:items-center justify-between gap-4 w-full lg:w-auto lg:flex-none">
                 {/* Durum Filtreleri */}
-                <div className="flex items-center bg-white border border-soft-border rounded-xl p-1 overflow-x-auto">
+              <div className="flex items-center w-full sm:w-auto bg-white border border-soft-border rounded-xl p-1 overflow-x-auto">
                     {filterOptions.map((btn) => (
                         <button
                             key={btn.id}

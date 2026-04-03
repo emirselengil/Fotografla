@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import AppHeader from "../../components/AppHeader";
 import { fetchCurrentCoupleLatestEvent, fetchEventMedia, type MediaListItemResponse } from "../../lib/dashboard-api";
 import { getStoredUserName } from "../../lib/auth";
 import { buildInitials } from "../../lib/user-display";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 type MediaItem = {
   id: string;
@@ -14,6 +15,16 @@ type MediaItem = {
   uploadedAt: string;
   url: string;
 };
+
+function resolveMediaUrl(url: string): string {
+  if (/^https?:\/\//.test(url)) {
+    return url;
+  }
+  if (!url.startsWith("/")) {
+    return `${API_BASE_URL}/${url}`;
+  }
+  return `${API_BASE_URL}${url}`;
+}
 
 const navItems = [
   { label: "Genel Bakis", href: "/cift" },
@@ -62,6 +73,23 @@ export default function MedyaPage() {
   const filteredMedia = useMemo(() => mediaItems.filter(
     (item) => filter === "all" || item.type === filter
   ), [mediaItems, filter]);
+
+  useEffect(() => {
+    if (!lightboxItem) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLightboxItem(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [lightboxItem]);
 
   return (
     <>
@@ -138,12 +166,21 @@ export default function MedyaPage() {
                 onClick={() => setLightboxItem(item)}
                 className={`relative w-full h-full overflow-hidden rounded-2xl cursor-pointer group shadow-sm hover:shadow-xl transition-all duration-500 ${rowSpan}`}
               >
-                <Image
-                  src={item.url}
-                  alt={item.id}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
-                />
+                {item.type === "photo" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={resolveMediaUrl(item.url)}
+                    alt={item.id}
+                    className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                  />
+                ) : (
+                  <video
+                    src={resolveMediaUrl(item.url)}
+                    className="h-full w-full object-cover"
+                    muted
+                    playsInline
+                  />
+                )}
 
                 {/* Ust Bilgi (Hover ile gelir) */}
                 <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -174,11 +211,11 @@ export default function MedyaPage() {
 
       {/* Lightbox / Tam Ekran Goruntuleyici */}
       {lightboxItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/95 backdrop-blur-sm animate-in fade-in duration-300">
           {/* Kapat Butonu */}
           <button
             onClick={() => setLightboxItem(null)}
-            className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors z-50"
+            className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center rounded-full bg-black/70 border border-white/40 text-white hover:bg-black/85 transition-colors z-[130] shadow-lg"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -199,14 +236,22 @@ export default function MedyaPage() {
           {/* Resim/Video Alanı */}
           <div className="relative w-full max-w-5xl h-[85vh] p-4 flex items-center justify-center">
             <div className="relative w-full h-full max-h-full">
-              <Image
-                src={lightboxItem.url}
-                alt={lightboxItem.id}
-                fill
-                className="object-contain"
-                quality={100}
-                priority
-              />
+              {lightboxItem.type === "photo" ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={resolveMediaUrl(lightboxItem.url)}
+                  alt={lightboxItem.id}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <video
+                  src={resolveMediaUrl(lightboxItem.url)}
+                  className="h-full w-full object-contain"
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              )}
             </div>
             
             {/* Ortadaki play ikonu (eğer videoyla açılırsa) */}
