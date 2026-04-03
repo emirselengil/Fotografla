@@ -122,8 +122,15 @@ export default function EtkinliklerPage() {
                       <span>{new Date(event.startsAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} - {new Date(event.endsAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
                       <span>{event.pax} davetli</span>
                     </div>
+                    <p className="mt-2 text-xs font-semibold tracking-wide text-sage-dark">Kod: {event.accessCode}</p>
                   </div>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sage-light text-sage-dark">{event.status}</span>
+                  <Link
+                    href={`/salon/etkinlikler/${event.id}`}
+                    className="rounded-xl border border-soft-border bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  >
+                    Detay
+                  </Link>
                 </div>
               </article>
             );

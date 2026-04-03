@@ -67,6 +67,11 @@ public class EventController {
         return eventService.list(venueId);
     }
 
+        @GetMapping("/{eventId}")
+        public EventService.EventResponse getById(@PathVariable UUID eventId) {
+                return eventService.getById(eventId);
+        }
+
     @GetMapping("/active")
     public Map<String, Object> getActiveEvent() {
         EventService.EventResponse activeEvent = eventService.findActive();
@@ -89,31 +94,42 @@ public class EventController {
                 "timestamp", OffsetDateTime.now().toString());
     }
 
-            @GetMapping("/me/latest")
-            public Map<String, Object> getLatestForCurrentCouple(Authentication authentication) {
-            UUID userId = UUID.fromString((String) authentication.getPrincipal());
-            CoupleEntity couple = coupleRepository.findByPrimaryUserId(userId)
+    @GetMapping("/me/latest")
+    public Map<String, Object> getLatestForCurrentCouple(Authentication authentication) {
+        UUID userId = UUID.fromString((String) authentication.getPrincipal());
+        CoupleEntity couple = coupleRepository.findByPrimaryUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Cift profili bulunamadi."));
 
-            EventService.EventResponse latestEvent = eventService.findLatestByCoupleId(couple.getId());
-            if (latestEvent == null) {
-                return Map.of(
+        EventService.EventResponse latestEvent = eventService.findLatestByCoupleId(couple.getId());
+        if (latestEvent == null) {
+            return Map.of(
                     "found", false,
                     "coupleId", couple.getId(),
                     "timestamp", OffsetDateTime.now().toString());
-            }
+        }
 
-            return Map.of(
+        return Map.of(
                 "found", true,
                 "coupleId", couple.getId(),
                 "event", Map.of(
-                    "id", latestEvent.id(),
-                    "title", latestEvent.title(),
-                    "startsAt", latestEvent.startsAt(),
-                    "endsAt", latestEvent.endsAt(),
-                    "status", latestEvent.status()),
+                        "id", latestEvent.id(),
+                        "title", latestEvent.title(),
+                        "startsAt", latestEvent.startsAt(),
+                        "endsAt", latestEvent.endsAt(),
+                        "status", latestEvent.status()),
                 "timestamp", OffsetDateTime.now().toString());
-            }
+    }
+
+    @PostMapping("/me/link")
+    public EventService.EventResponse linkCurrentCoupleToEvent(
+            Authentication authentication,
+            @Valid @RequestBody LinkEventRequest request) {
+        UUID userId = UUID.fromString((String) authentication.getPrincipal());
+        CoupleEntity couple = coupleRepository.findByPrimaryUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Cift profili bulunamadi."));
+
+        return eventService.linkCoupleByAccessCode(couple.getId(), request.accessCode());
+    }
 
     @PatchMapping("/{eventId}/status")
     public EventService.EventResponse updateStatus(
@@ -122,6 +138,13 @@ public class EventController {
         return eventService.updateStatus(eventId, request.status());
     }
 
+        @PatchMapping("/{eventId}/payment-status")
+        public EventService.EventResponse updatePaymentStatus(
+                        @PathVariable UUID eventId,
+                        @Valid @RequestBody UpdatePaymentStatusRequest request) {
+                return eventService.updatePaymentStatus(eventId, request.paymentStatus());
+        }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
@@ -129,7 +152,7 @@ public class EventController {
 
     public record CreateEventRequest(
             @NotNull UUID venueId,
-            @NotNull UUID coupleId,
+            UUID coupleId,
             @NotBlank String title,
             @NotBlank String eventType,
             @NotNull OffsetDateTime startsAt,
@@ -145,5 +168,11 @@ public class EventController {
     }
 
     public record UpdateStatusRequest(@NotBlank String status) {
+    }
+
+        public record UpdatePaymentStatusRequest(@NotBlank String paymentStatus) {
+        }
+
+    public record LinkEventRequest(@NotBlank String accessCode) {
     }
 }

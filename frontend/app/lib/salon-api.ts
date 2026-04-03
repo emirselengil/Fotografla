@@ -10,13 +10,14 @@ export type VenueEventItemResponse = {
   endsAt: string;
   pax: number;
   status: "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  accessCode: string;
   packageName?: string;
   paymentApproved: boolean;
 };
 
 export type CreateEventRequest = {
   venueId: string;
-  coupleId: string;
+  coupleId?: string;
   title: string;
   eventType: string;
   startsAt: string;
@@ -34,7 +35,7 @@ export type CreateEventRequest = {
 export type EventResponse = {
   id: string;
   venueId: string;
-  coupleId: string;
+  coupleId: string | null;
   title: string;
   eventType: string;
   startsAt: string;
@@ -43,6 +44,7 @@ export type EventResponse = {
   packageName?: string;
   status: "planned" | "active" | "completed" | "cancelled";
   paymentStatus: string;
+  accessCode: string;
   contactName?: string;
   contactPhoneE164?: string;
   contactEmail?: string;
@@ -85,6 +87,20 @@ export async function updateEventStatus(eventId: string, status: "planned" | "ac
   return apiRequest<EventResponse>(`/api/v1/events/${eventId}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
+  });
+}
+
+export async function fetchEventDetail(eventId: string): Promise<EventResponse> {
+  return apiRequest<EventResponse>(`/api/v1/events/${eventId}`);
+}
+
+export async function updateEventPaymentStatus(
+  eventId: string,
+  paymentStatus: "pending" | "approved" | "rejected" | "refunded"
+): Promise<EventResponse> {
+  return apiRequest<EventResponse>(`/api/v1/events/${eventId}/payment-status`, {
+    method: "PATCH",
+    body: JSON.stringify({ paymentStatus }),
   });
 }
 

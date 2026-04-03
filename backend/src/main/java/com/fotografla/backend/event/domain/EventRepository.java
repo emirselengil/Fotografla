@@ -9,6 +9,8 @@ public interface EventRepository extends JpaRepository<EventEntity, UUID> {
     Optional<EventEntity> findFirstByStatusOrderByStartsAtDesc(String status);
     Optional<EventEntity> findFirstByVenueIdAndStatusOrderByStartsAtDesc(UUID venueId, String status);
     Optional<EventEntity> findFirstByCoupleIdOrderByStartsAtDesc(UUID coupleId);
+    Optional<EventEntity> findByAccessCode(String accessCode);
+    boolean existsByAccessCode(String accessCode);
     List<EventEntity> findByVenueIdOrderByStartsAtDesc(UUID venueId);
     List<EventEntity> findAllByOrderByStartsAtDesc();
 }

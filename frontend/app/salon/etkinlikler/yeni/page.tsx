@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import AppHeader from "../../../components/AppHeader";
-import { createEvent, getDefaultCoupleId, getDefaultVenueId, type EventResponse } from "../../../lib/salon-api";
+import { createEvent, type EventResponse } from "../../../lib/salon-api";
+import { fetchMySalonProfile } from "../../../lib/profile-api";
 import { getStoredUserName } from "../../../lib/auth";
 import { buildInitials } from "../../../lib/user-display";
 
@@ -56,9 +57,23 @@ function toIso(date: string, time: string): string {
 export default function YeniEtkinlikPage() {
   const [form, setForm] = useState<EventFormData>(defaultForm);
   const [createdEvent, setCreatedEvent] = useState<EventResponse | null>(null);
+  const [activeVenueId, setActiveVenueId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentUserName] = useState(() => getStoredUserName() || "Salon");
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const mySalon = await fetchMySalonProfile();
+        setActiveVenueId(mySalon.venueId);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Aktif salon bilgisi alinamadi.");
+      }
+    };
+
+    void run();
+  }, []);
 
   const coupleName = useMemo(() => {
     if (!form.groomName && !form.brideName) {
@@ -76,18 +91,15 @@ export default function YeniEtkinlikPage() {
       return;
     }
 
-    const venueId = getDefaultVenueId();
-    const coupleId = getDefaultCoupleId();
-    if (!venueId || !coupleId) {
-      setError("Varsayilan venue/couple ID ayarlari eksik.");
+    if (!activeVenueId) {
+      setError("Aktif salon ID bulunamadi.");
       return;
     }
 
     setIsLoading(true);
     try {
       const response = await createEvent({
-        venueId,
-        coupleId,
+        venueId: activeVenueId,
         title: coupleName,
         eventType: form.eventType,
         startsAt: toIso(form.date, form.startTime),
@@ -159,6 +171,9 @@ export default function YeniEtkinlikPage() {
             <p className="text-xs uppercase tracking-widest text-sage-dark font-semibold">Etkinlik Olusturuldu</p>
             <h2 className="font-display text-xl font-semibold text-foreground mt-1">{createdEvent.title}</h2>
             <p className="text-sm text-slate-600 mt-1">{new Date(createdEvent.startsAt).toLocaleString("tr-TR")}</p>
+            <p className="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-sm font-semibold text-sage-dark border border-sage-light">
+              Etkinlik Kodu: {createdEvent.accessCode}
+            </p>
             <Link href="/salon/etkinlikler" className="mt-4 inline-flex items-center rounded-xl bg-sage text-white text-sm font-medium px-4 py-2 hover:bg-sage-dark transition">
               Takvime Git
             </Link>

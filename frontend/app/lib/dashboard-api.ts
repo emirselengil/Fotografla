@@ -1,4 +1,5 @@
 import { apiRequest } from "./api";
+import type { EventResponse } from "./salon-api";
 
 export type MediaListItemResponse = {
   id: string;
@@ -16,6 +17,7 @@ export type EventSummaryResponse = {
   endTime: string;
   participantCount: number;
   status: string;
+  paymentApproved: boolean;
   venueId: string;
   venueName: string;
   venueCity: string;
@@ -59,4 +61,11 @@ export async function fetchEventSummary(eventId: string): Promise<EventSummaryRe
 
 export async function fetchCurrentCoupleLatestEvent(): Promise<CurrentCoupleLatestEventResponse> {
   return apiRequest<CurrentCoupleLatestEventResponse>("/api/v1/events/me/latest");
+}
+
+export async function linkCurrentCoupleToEvent(accessCode: string): Promise<EventResponse> {
+  return apiRequest<EventResponse>("/api/v1/events/me/link", {
+    method: "POST",
+    body: JSON.stringify({ accessCode: accessCode.trim().toUpperCase() }),
+  });
 }

@@ -54,6 +54,7 @@ public class DashboardReadService {
                 event.getEndsAt().toLocalTime().toString(),
                 event.getPaxPlanned(),
                 event.getStatus().toUpperCase(Locale.ROOT),
+            "approved".equalsIgnoreCase(event.getPaymentStatus()),
                 venue.getId(),
                 venue.getName(),
                 venue.getCity(),
@@ -71,6 +72,7 @@ public class DashboardReadService {
                         event.getEndsAt(),
                         event.getPaxPlanned(),
                         event.getStatus().toUpperCase(Locale.ROOT),
+                    event.getAccessCode(),
                         event.getPackageName(),
                         "APPROVED".equalsIgnoreCase(event.getPaymentStatus())
                 ))
@@ -157,6 +159,7 @@ public class DashboardReadService {
             String endTime,
             Integer participantCount,
             String status,
+            boolean paymentApproved,
             UUID venueId,
             String venueName,
             String venueCity,
@@ -171,6 +174,7 @@ public class DashboardReadService {
             java.time.OffsetDateTime endsAt,
             Integer pax,
             String status,
+                String accessCode,
             String packageName,
             boolean paymentApproved) {
     }

@@ -24,7 +24,7 @@ public class EventEntity {
     @Column(name = "venue_id", nullable = false)
     private UUID venueId;
 
-    @Column(name = "couple_id", nullable = false)
+    @Column(name = "couple_id")
     private UUID coupleId;
 
     @Column(name = "title", nullable = false)
@@ -50,6 +50,9 @@ public class EventEntity {
 
     @Column(name = "payment_status", nullable = false)
     private String paymentStatus;
+
+    @Column(name = "access_code", nullable = false, length = 12)
+    private String accessCode;
 
     @Column(name = "contact_name")
     private String contactName;

@@ -9,6 +9,7 @@ import {
   fetchEventParticipants,
   fetchEventSummary,
   fetchCurrentCoupleLatestEvent,
+  linkCurrentCoupleToEvent,
   type EventSummaryResponse,
   type MediaListItemResponse,
   type ParticipantListItemResponse,
@@ -53,46 +54,68 @@ export default function CiftPage() {
   const [summary, setSummary] = useState<EventSummaryResponse | null>(null);
   const [mediaItems, setMediaItems] = useState<MediaListItemResponse[]>([]);
   const [participants, setParticipants] = useState<ParticipantListItemResponse[]>([]);
+  const [eventCode, setEventCode] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
   const [currentUserName] = useState(() => getStoredUserName() || "Cift");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const run = async () => {
-      try {
-        const latestEvent = await fetchCurrentCoupleLatestEvent();
+  const loadDashboard = async () => {
+    setLoading(true);
+    try {
+      const latestEvent = await fetchCurrentCoupleLatestEvent();
 
-        if (!latestEvent.found || !latestEvent.event?.id) {
-          setSummary(null);
-          setMediaItems([]);
-          setParticipants([]);
-          setError("Aktif kullaniciya ait etkinlik bulunamadi.");
-          return;
-        }
-
-        const eventId = latestEvent.event.id;
-        const [eventSummary, eventMedia, eventParticipants] = await Promise.all([
-          fetchEventSummary(eventId),
-          fetchEventMedia(eventId),
-          fetchEventParticipants(eventId),
-        ]);
-
-        setSummary(eventSummary);
-        setMediaItems(eventMedia);
-        setParticipants(eventParticipants);
-      } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "Veriler alinamadi.");
-      } finally {
-        setLoading(false);
+      if (!latestEvent.found || !latestEvent.event?.id) {
+        setSummary(null);
+        setMediaItems([]);
+        setParticipants([]);
+        setError("");
+        return;
       }
-    };
 
-    void run();
+      const eventId = latestEvent.event.id;
+      const [eventSummary, eventMedia, eventParticipants] = await Promise.all([
+        fetchEventSummary(eventId),
+        fetchEventMedia(eventId),
+        fetchEventParticipants(eventId),
+      ]);
+
+      setSummary(eventSummary);
+      setMediaItems(eventMedia);
+      setParticipants(eventParticipants);
+      setError("");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Veriler alinamadi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadDashboard();
   }, []);
+
+  const handleLinkEvent = async () => {
+    if (!eventCode.trim()) {
+      setError("Lutfen etkinlik kodu girin.");
+      return;
+    }
+
+    setIsLinking(true);
+    try {
+      await linkCurrentCoupleToEvent(eventCode);
+      setEventCode("");
+      await loadDashboard();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Etkinlik kodu ile baglanti kurulamadı.");
+    } finally {
+      setIsLinking(false);
+    }
+  };
 
   const mediaPreview = useMemo(() => mediaItems.slice(0, 9), [mediaItems]);
   const participantsPreview = useMemo(() => participants.slice(0, 5), [participants]);
-  const paymentApproved = summary?.status === "ACTIVE" || summary?.status === "COMPLETED";
+  const paymentApproved = Boolean(summary?.paymentApproved);
 
   return (
     <AppHeader
@@ -103,6 +126,31 @@ export default function CiftPage() {
     >
       {loading && <p className="text-sm text-slate-500">Veriler yukleniyor...</p>}
       {error && <p className="text-sm text-rose-600">{error}</p>}
+
+      {!loading && !summary && (
+        <section className="rounded-2xl border border-soft-border bg-cream p-6 md:p-7">
+          <h2 className="font-display text-2xl font-semibold text-foreground">Etkinlik Kodu ile Baglan</h2>
+          <p className="mt-2 text-sm text-slate-500">Salon tarafindan paylasilan benzersiz etkinlik kodunu girin.</p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              value={eventCode}
+              onChange={(event) => setEventCode(event.target.value.toUpperCase())}
+              placeholder="Ornek: AB12CD34"
+              className="w-full rounded-xl border border-soft-border bg-white px-4 py-3 text-sm outline-none focus:border-sage focus:ring-1 focus:ring-sage"
+              maxLength={8}
+              disabled={isLinking}
+            />
+            <button
+              type="button"
+              onClick={() => void handleLinkEvent()}
+              disabled={isLinking}
+              className="rounded-xl bg-sage px-5 py-3 text-sm font-medium text-white hover:bg-sage-dark"
+            >
+              {isLinking ? "Baglaniyor..." : "Etkinlige Baglan"}
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Ödeme uyarısı (koşullu) */}
       {!loading && !error && !paymentApproved && (
