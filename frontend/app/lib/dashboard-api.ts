@@ -1,8 +1,5 @@
 import { apiRequest } from "./api";
 
-const DEFAULT_EVENT_ID = process.env.NEXT_PUBLIC_DEFAULT_EVENT_ID ?? "66666666-6666-6666-6666-666666666666";
-const DEFAULT_VENUE_ID = process.env.NEXT_PUBLIC_DEFAULT_VENUE_ID ?? "33333333-3333-3333-3333-333333333333";
-
 export type MediaListItemResponse = {
   id: string;
   type: "PHOTO" | "VIDEO";
@@ -35,13 +32,18 @@ export type ParticipantListItemResponse = {
   uploadedVideos: number;
 };
 
-export function getDefaultEventId(): string {
-  return DEFAULT_EVENT_ID;
-}
-
-export function getDefaultVenueId(): string {
-  return DEFAULT_VENUE_ID;
-}
+export type CurrentCoupleLatestEventResponse = {
+  found: boolean;
+  coupleId: string;
+  event?: {
+    id: string;
+    title: string;
+    startsAt: string;
+    endsAt: string;
+    status: string;
+  };
+  timestamp: string;
+};
 
 export async function fetchEventMedia(eventId: string): Promise<MediaListItemResponse[]> {
   return apiRequest<MediaListItemResponse[]>(`/api/v1/events/${eventId}/media`);
@@ -53,4 +55,8 @@ export async function fetchEventParticipants(eventId: string): Promise<Participa
 
 export async function fetchEventSummary(eventId: string): Promise<EventSummaryResponse> {
   return apiRequest<EventSummaryResponse>(`/api/v1/events/${eventId}/summary`);
+}
+
+export async function fetchCurrentCoupleLatestEvent(): Promise<CurrentCoupleLatestEventResponse> {
+  return apiRequest<CurrentCoupleLatestEventResponse>("/api/v1/events/me/latest");
 }

@@ -68,7 +68,7 @@ export default function Home() {
         }),
       });
 
-      persistAuth(response.token, response.user.role);
+      persistAuth(response.token, response.user.role, response.user.fullName);
 
       if (response.user.role === "salon_owner" || response.user.role === "staff") {
         router.push("/salon");

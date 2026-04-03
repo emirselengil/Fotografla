@@ -2,7 +2,9 @@
 
 import AppHeader from "../../components/AppHeader";
 import { useEffect, useState } from "react";
-import { fetchSalonProfile, getDefaultVenueId, updateSalonProfile } from "../../lib/profile-api";
+import { fetchMySalonProfile, updateSalonProfile } from "../../lib/profile-api";
+import { getStoredUserName, setStoredUserName } from "../../lib/auth";
+import { buildInitials } from "../../lib/user-display";
 
 const navItems = [
   { label: "Genel Bakis", href: "/salon" },
@@ -38,21 +40,19 @@ const defaultProfile: SalonProfileData = {
 export default function SalonProfilPage() {
   const [profile, setProfile] = useState<SalonProfileData>(defaultProfile);
   const [draft, setDraft] = useState<SalonProfileData>(defaultProfile);
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState(() => getStoredUserName() || "Salon");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const run = async () => {
-      const venueId = getDefaultVenueId();
-      if (!venueId) {
-        setError("Salon ID bulunamadi.");
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const response = await fetchSalonProfile(venueId);
+        const response = await fetchMySalonProfile();
+        setCurrentUserName(response.fullName || "Salon");
+        setStoredUserName(response.fullName || "Salon");
+        setVenueId(response.venueId);
         const mapped: SalonProfileData = {
           fullName: response.fullName,
           email: response.email,
@@ -90,7 +90,6 @@ export default function SalonProfilPage() {
       return;
     }
 
-    const venueId = getDefaultVenueId();
     if (!venueId) {
       setError("Salon ID bulunamadi.");
       return;
@@ -119,6 +118,8 @@ export default function SalonProfilPage() {
 
       setProfile(mapped);
       setDraft(mapped);
+      setCurrentUserName(mapped.fullName || "Salon");
+      setStoredUserName(mapped.fullName || "Salon");
       setIsEditing(false);
       setError("");
     } catch (requestError) {
@@ -127,7 +128,7 @@ export default function SalonProfilPage() {
   };
 
   return (
-    <AppHeader name={profile.salonName || "Salon"} initials="ES" subtitle="Salon Yetkilisi" navItems={navItems}>
+    <AppHeader name={currentUserName} initials={buildInitials(currentUserName, "S")} subtitle="Salon Yetkilisi" navItems={navItems}>
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
         <section className="rounded-2xl border border-soft-border bg-cream p-6 md:p-7">
           <p className="text-xs uppercase tracking-widest text-slate-400 font-medium">Profil</p>

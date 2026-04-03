@@ -3,7 +3,10 @@
 import AppHeader from "../components/AppHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchVenueEvents, getDefaultVenueId, updateEventStatus, type VenueEventItemResponse } from "../lib/salon-api";
+import { fetchVenueEvents, updateEventStatus, type VenueEventItemResponse } from "../lib/salon-api";
+import { fetchMySalonProfile } from "../lib/profile-api";
+import { getStoredUserName } from "../lib/auth";
+import { buildInitials } from "../lib/user-display";
 
 const navItems = [
   { label: "Genel Bakis", href: "/salon" },
@@ -32,12 +35,13 @@ export default function SalonPage() {
   const [events, setEvents] = useState<VenueEventItemResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
 
-  const venueId = getDefaultVenueId();
+  const [venueId, setVenueId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!venueId) {
-      setError("NEXT_PUBLIC_DEFAULT_VENUE_ID ayarlanmalidir.");
+      setError("Aktif kullaniciya ait salon bulunamadi.");
       setLoading(false);
       return;
     }
@@ -54,8 +58,25 @@ export default function SalonPage() {
   }, [venueId]);
 
   useEffect(() => {
+    const run = async () => {
+      try {
+        const mySalon = await fetchMySalonProfile();
+        setVenueId(mySalon.venueId);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Salon bilgisi alinamadi.");
+        setLoading(false);
+      }
+    };
+
+    void run();
+  }, []);
+
+  useEffect(() => {
+    if (!venueId) {
+      return;
+    }
     void reload();
-  }, [reload]);
+  }, [venueId, reload]);
 
   const activeEvent = useMemo(() => events.find((event) => event.status === "ACTIVE") ?? null, [events]);
   const stats = useMemo(() => {
@@ -75,7 +96,7 @@ export default function SalonPage() {
   };
 
   return (
-    <AppHeader name="Salon Paneli" initials="ES" subtitle="Salon Yetkilisi" navItems={navItems}>
+    <AppHeader name={currentUserName} initials={buildInitials(currentUserName, "S")} subtitle="Salon Yetkilisi" navItems={navItems}>
       {loading && <p className="text-sm text-slate-500 mb-4">Veriler yukleniyor...</p>}
       {error && <p className="text-sm text-rose-600 mb-4">{error}</p>}
 

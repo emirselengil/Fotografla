@@ -49,6 +49,11 @@ public class ProfileController {
         return profileService.salonProfile(venueId);
     }
 
+    @GetMapping("/venues/me/profile")
+    public ProfileService.SalonProfileResponse mySalonProfile(Authentication authentication) {
+        return profileService.salonProfileByOwnerUserId(currentUserId(authentication));
+    }
+
     @PatchMapping("/venues/{venueId}/profile")
     public ProfileService.SalonProfileResponse updateSalonProfile(
             @PathVariable UUID venueId,

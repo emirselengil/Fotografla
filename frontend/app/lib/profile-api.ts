@@ -1,7 +1,5 @@
 import { apiRequest } from "./api";
 
-const DEFAULT_VENUE_ID = process.env.NEXT_PUBLIC_DEFAULT_VENUE_ID ?? "33333333-3333-3333-3333-333333333333";
-
 export type UserProfileResponse = {
   id: string;
   email: string;
@@ -31,10 +29,6 @@ export type SalonProfileResponse = {
   city: string;
   monthlyPlanCode: string;
 };
-
-export function getDefaultVenueId(): string {
-  return DEFAULT_VENUE_ID;
-}
 
 export async function fetchCurrentUser(): Promise<UserProfileResponse> {
   return apiRequest<UserProfileResponse>("/api/v1/users/me");
@@ -72,6 +66,10 @@ export async function updateCoupleProfile(payload: {
 
 export async function fetchSalonProfile(venueId: string): Promise<SalonProfileResponse> {
   return apiRequest<SalonProfileResponse>(`/api/v1/venues/${venueId}/profile`);
+}
+
+export async function fetchMySalonProfile(): Promise<SalonProfileResponse> {
+  return apiRequest<SalonProfileResponse>("/api/v1/venues/me/profile");
 }
 
 export async function updateSalonProfile(

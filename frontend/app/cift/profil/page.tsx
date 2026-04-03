@@ -3,6 +3,8 @@
 import AppHeader from "../../components/AppHeader";
 import { useEffect, useState } from "react";
 import { fetchCoupleProfile, updateCoupleProfile } from "../../lib/profile-api";
+import { getStoredUserName, setStoredUserName } from "../../lib/auth";
+import { buildInitials } from "../../lib/user-display";
 
 const navItems = [
   { label: "Genel Bakis", href: "/cift" },
@@ -34,6 +36,7 @@ const defaultProfile: CoupleProfileData = {
 export default function CiftProfilPage() {
   const [profile, setProfile] = useState<CoupleProfileData>(defaultProfile);
   const [draft, setDraft] = useState<CoupleProfileData>(defaultProfile);
+  const [currentUserName, setCurrentUserName] = useState(() => getStoredUserName() || "Cift");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -42,6 +45,9 @@ export default function CiftProfilPage() {
     const run = async () => {
       try {
         const response = await fetchCoupleProfile();
+        setCurrentUserName(response.fullName || "Cift");
+        setStoredUserName(response.fullName || "Cift");
+
         const mapped: CoupleProfileData = {
           fullName: response.fullName,
           email: response.email,
@@ -100,6 +106,8 @@ export default function CiftProfilPage() {
 
       setProfile(mapped);
       setDraft(mapped);
+      setCurrentUserName(mapped.fullName || "Cift");
+      setStoredUserName(mapped.fullName || "Cift");
       setIsEditing(false);
       setError("");
     } catch (requestError) {
@@ -108,7 +116,7 @@ export default function CiftProfilPage() {
   };
 
   return (
-    <AppHeader name={profile.groomName || "Cift"} initials="ES" subtitle="Cift Paneli" navItems={navItems}>
+    <AppHeader name={currentUserName} initials={buildInitials(currentUserName, "C")} subtitle="Cift Paneli" navItems={navItems}>
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
         <section className="rounded-2xl border border-soft-border bg-cream p-6 md:p-7">
           <p className="text-xs uppercase tracking-widest text-slate-400 font-medium">Profil</p>

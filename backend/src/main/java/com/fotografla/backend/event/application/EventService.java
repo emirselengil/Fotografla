@@ -74,6 +74,15 @@ public class EventService {
         return toResponse(activeEvent);
     }
 
+    public EventResponse findLatestByCoupleId(UUID coupleId) {
+        EventEntity event = eventRepository.findFirstByCoupleIdOrderByStartsAtDesc(coupleId)
+                .orElse(null);
+        if (event == null) {
+            return null;
+        }
+        return toResponse(event);
+    }
+
     private String normalizeStatus(String rawStatus) {
         String status = rawStatus == null ? "" : rawStatus.trim().toLowerCase(Locale.ROOT);
         if (!ALLOWED_STATUS.contains(status)) {

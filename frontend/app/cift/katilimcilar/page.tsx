@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useEffect } from "react";
 import AppHeader from "../../components/AppHeader";
-import { fetchEventParticipants, getDefaultEventId, type ParticipantListItemResponse } from "../../lib/dashboard-api";
+import { fetchCurrentCoupleLatestEvent, fetchEventParticipants, type ParticipantListItemResponse } from "../../lib/dashboard-api";
+import { getStoredUserName } from "../../lib/auth";
+import { buildInitials } from "../../lib/user-display";
 
 type AppUser = {
   id: string;
@@ -44,19 +46,20 @@ export default function KatilimcilarPage() {
   const [filter, setFilter] = useState<"all" | "photos" | "videos">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [currentUserName] = useState(() => getStoredUserName() || "Cift");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const run = async () => {
-      const eventId = getDefaultEventId();
-      if (!eventId) {
-        setError("NEXT_PUBLIC_DEFAULT_EVENT_ID ayarlanmalidir.");
-        setLoading(false);
-        return;
-      }
-
       try {
+        const latestEvent = await fetchCurrentCoupleLatestEvent();
+        if (!latestEvent.found || !latestEvent.event?.id) {
+          setError("Aktif kullaniciya ait etkinlik bulunamadi.");
+          return;
+        }
+
+        const eventId = latestEvent.event.id;
         const response = await fetchEventParticipants(eventId);
         const mapped = response.map((user: ParticipantListItemResponse) => ({
           id: user.id,
@@ -118,8 +121,8 @@ export default function KatilimcilarPage() {
 
   return (
     <AppHeader
-      name="Cift Paneli"
-      initials="ES"
+      name={currentUserName}
+      initials={buildInitials(currentUserName, "C")}
       subtitle="Cift Paneli"
       navItems={navItems}
     >

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import AppHeader from "../../../components/AppHeader";
 import { createEvent, getDefaultCoupleId, getDefaultVenueId, type EventResponse } from "../../../lib/salon-api";
+import { getStoredUserName } from "../../../lib/auth";
+import { buildInitials } from "../../../lib/user-display";
 
 const navItems = [
   { label: "Genel Bakis", href: "/salon" },
@@ -56,6 +58,7 @@ export default function YeniEtkinlikPage() {
   const [createdEvent, setCreatedEvent] = useState<EventResponse | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
 
   const coupleName = useMemo(() => {
     if (!form.groomName && !form.brideName) {
@@ -109,7 +112,7 @@ export default function YeniEtkinlikPage() {
   };
 
   return (
-    <AppHeader name="Salon Paneli" initials="ES" subtitle="Salon Yetkilisi" navItems={navItems}>
+    <AppHeader name={currentUserName} initials={buildInitials(currentUserName, "S")} subtitle="Salon Yetkilisi" navItems={navItems}>
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

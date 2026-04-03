@@ -1,6 +1,8 @@
 package com.fotografla.backend.event.api;
 
 import com.fotografla.backend.event.application.EventService;
+import com.fotografla.backend.couple.domain.CoupleEntity;
+import com.fotografla.backend.couple.domain.CoupleRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class EventController {
 
     private final EventService eventService;
+    private final CoupleRepository coupleRepository;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, CoupleRepository coupleRepository) {
         this.eventService = eventService;
+        this.coupleRepository = coupleRepository;
     }
 
     @PostMapping
@@ -84,6 +88,32 @@ public class EventController {
                 "status", activeEvent.status()),
                 "timestamp", OffsetDateTime.now().toString());
     }
+
+            @GetMapping("/me/latest")
+            public Map<String, Object> getLatestForCurrentCouple(Authentication authentication) {
+            UUID userId = UUID.fromString((String) authentication.getPrincipal());
+            CoupleEntity couple = coupleRepository.findByPrimaryUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Cift profili bulunamadi."));
+
+            EventService.EventResponse latestEvent = eventService.findLatestByCoupleId(couple.getId());
+            if (latestEvent == null) {
+                return Map.of(
+                    "found", false,
+                    "coupleId", couple.getId(),
+                    "timestamp", OffsetDateTime.now().toString());
+            }
+
+            return Map.of(
+                "found", true,
+                "coupleId", couple.getId(),
+                "event", Map.of(
+                    "id", latestEvent.id(),
+                    "title", latestEvent.title(),
+                    "startsAt", latestEvent.startsAt(),
+                    "endsAt", latestEvent.endsAt(),
+                    "status", latestEvent.status()),
+                "timestamp", OffsetDateTime.now().toString());
+            }
 
     @PatchMapping("/{eventId}/status")
     public EventService.EventResponse updateStatus(

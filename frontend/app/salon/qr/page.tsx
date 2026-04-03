@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { jsPDF } from "jspdf";
 import AppHeader from "../../components/AppHeader";
-import { fetchVenueQrDashboard, generateVenueQr, getDefaultVenueId, type VenueQrDashboardResponse } from "../../lib/salon-api";
+import { fetchVenueQrDashboard, generateVenueQr, type VenueQrDashboardResponse } from "../../lib/salon-api";
+import { fetchMySalonProfile } from "../../lib/profile-api";
+import { getStoredUserName } from "../../lib/auth";
+import { buildInitials } from "../../lib/user-display";
 
 const navItems = [
   { label: "Genel Bakis", href: "/salon" },
@@ -28,12 +31,12 @@ export default function QRYonetimiPage() {
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState("");
-
-  const venueId = getDefaultVenueId();
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
 
   const load = useCallback(async () => {
     if (!venueId) {
-      setError("NEXT_PUBLIC_DEFAULT_VENUE_ID ayarlanmalidir.");
+      setError("Aktif kullaniciya ait salon bulunamadi.");
       setLoading(false);
       return;
     }
@@ -50,8 +53,25 @@ export default function QRYonetimiPage() {
   }, [venueId]);
 
   useEffect(() => {
+    const run = async () => {
+      try {
+        const mySalon = await fetchMySalonProfile();
+        setVenueId(mySalon.venueId);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Salon bilgisi alinamadi.");
+        setLoading(false);
+      }
+    };
+
+    void run();
+  }, []);
+
+  useEffect(() => {
+    if (!venueId) {
+      return;
+    }
     void load();
-  }, [load]);
+  }, [venueId, load]);
 
   const handleGenerate = async () => {
     if (!venueId) {
@@ -152,7 +172,7 @@ export default function QRYonetimiPage() {
   };
 
   return (
-    <AppHeader name={dashboard?.venueName ?? "Salon"} initials="ES" subtitle="Salon Yetkilisi" navItems={navItems}>
+    <AppHeader name={currentUserName} initials={buildInitials(currentUserName, "S")} subtitle="Salon Yetkilisi" navItems={navItems}>
       <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground">QR Kod Yonetimi</h1>

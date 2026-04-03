@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import AppHeader from "../../components/AppHeader";
-import { fetchEventMedia, getDefaultEventId, type MediaListItemResponse } from "../../lib/dashboard-api";
+import { fetchCurrentCoupleLatestEvent, fetchEventMedia, type MediaListItemResponse } from "../../lib/dashboard-api";
+import { getStoredUserName } from "../../lib/auth";
+import { buildInitials } from "../../lib/user-display";
 
 type MediaItem = {
   id: string;
@@ -23,19 +25,20 @@ export default function MedyaPage() {
   const [filter, setFilter] = useState<"all" | "photo" | "video">("all");
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [currentUserName] = useState(() => getStoredUserName() || "Cift");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const run = async () => {
-      const eventId = getDefaultEventId();
-      if (!eventId) {
-        setError("NEXT_PUBLIC_DEFAULT_EVENT_ID ayarlanmalidir.");
-        setLoading(false);
-        return;
-      }
-
       try {
+        const latestEvent = await fetchCurrentCoupleLatestEvent();
+        if (!latestEvent.found || !latestEvent.event?.id) {
+          setError("Aktif kullaniciya ait etkinlik bulunamadi.");
+          return;
+        }
+
+        const eventId = latestEvent.event.id;
         const response = await fetchEventMedia(eventId);
         const mapped: MediaItem[] = response.map((item: MediaListItemResponse): MediaItem => ({
           id: item.id,
@@ -63,8 +66,8 @@ export default function MedyaPage() {
   return (
     <>
       <AppHeader
-        name="Cift Paneli"
-        initials="ES"
+        name={currentUserName}
+        initials={buildInitials(currentUserName, "C")}
         subtitle="Cift Paneli"
         navItems={navItems}
       >

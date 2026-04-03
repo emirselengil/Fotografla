@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AppHeader from "../../components/AppHeader";
-import { fetchVenueEvents, getDefaultVenueId, type VenueEventItemResponse } from "../../lib/salon-api";
+import { fetchVenueEvents, type VenueEventItemResponse } from "../../lib/salon-api";
+import { fetchMySalonProfile } from "../../lib/profile-api";
+import { getStoredUserName } from "../../lib/auth";
+import { buildInitials } from "../../lib/user-display";
 
 const navItems = [
   { label: "Genel Bakis", href: "/salon" },
@@ -32,19 +35,15 @@ export default function EtkinliklerPage() {
   const [filter, setFilter] = useState<EventFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState<VenueEventItemResponse[]>([]);
+  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const run = async () => {
-      const venueId = getDefaultVenueId();
-      if (!venueId) {
-        setError("NEXT_PUBLIC_DEFAULT_VENUE_ID ayarlanmalidir.");
-        setLoading(false);
-        return;
-      }
-
       try {
+        const mySalon = await fetchMySalonProfile();
+        const venueId = mySalon.venueId;
         const response = await fetchVenueEvents(venueId);
         setEvents(response);
       } catch (requestError) {
@@ -67,7 +66,7 @@ export default function EtkinliklerPage() {
   }, [events, filter, searchQuery]);
 
   return (
-    <AppHeader name="Salon Paneli" initials="ES" subtitle="Salon Yetkilisi" navItems={navItems}>
+    <AppHeader name={currentUserName} initials={buildInitials(currentUserName, "S")} subtitle="Salon Yetkilisi" navItems={navItems}>
       <div className="flex flex-col gap-8">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground">Etkinlik Takvimi</h1>

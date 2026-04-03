@@ -8,11 +8,13 @@ import {
   fetchEventMedia,
   fetchEventParticipants,
   fetchEventSummary,
-  getDefaultEventId,
+  fetchCurrentCoupleLatestEvent,
   type EventSummaryResponse,
   type MediaListItemResponse,
   type ParticipantListItemResponse,
 } from "../lib/dashboard-api";
+import { getStoredUserName } from "../lib/auth";
+import { buildInitials } from "../lib/user-display";
 
 /* ── Nav ─────────────────────────────────────────── */
 const navItems = [
@@ -51,19 +53,24 @@ export default function CiftPage() {
   const [summary, setSummary] = useState<EventSummaryResponse | null>(null);
   const [mediaItems, setMediaItems] = useState<MediaListItemResponse[]>([]);
   const [participants, setParticipants] = useState<ParticipantListItemResponse[]>([]);
+  const [currentUserName] = useState(() => getStoredUserName() || "Cift");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const run = async () => {
-      const eventId = getDefaultEventId();
-      if (!eventId) {
-        setError("NEXT_PUBLIC_DEFAULT_EVENT_ID ayarlanmalidir.");
-        setLoading(false);
-        return;
-      }
-
       try {
+        const latestEvent = await fetchCurrentCoupleLatestEvent();
+
+        if (!latestEvent.found || !latestEvent.event?.id) {
+          setSummary(null);
+          setMediaItems([]);
+          setParticipants([]);
+          setError("Aktif kullaniciya ait etkinlik bulunamadi.");
+          return;
+        }
+
+        const eventId = latestEvent.event.id;
         const [eventSummary, eventMedia, eventParticipants] = await Promise.all([
           fetchEventSummary(eventId),
           fetchEventMedia(eventId),
@@ -89,8 +96,8 @@ export default function CiftPage() {
 
   return (
     <AppHeader
-      name={summary?.eventName ?? "Cift"}
-      initials="ES"
+      name={currentUserName}
+      initials={buildInitials(currentUserName, "C")}
       subtitle="Cift Paneli"
       navItems={navItems}
     >

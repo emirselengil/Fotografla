@@ -82,6 +82,12 @@ public class ProfileService {
                 venue.getMonthlyPlanCode());
     }
 
+        public SalonProfileResponse salonProfileByOwnerUserId(UUID ownerUserId) {
+                VenueEntity venue = venueRepository.findByOwnerUserId(ownerUserId)
+                                .orElseThrow(() -> new IllegalArgumentException("Kullaniciya ait salon bulunamadi."));
+                return salonProfile(venue.getId());
+        }
+
     public SalonProfileResponse updateSalonProfile(UUID venueId, UpdateSalonProfileCommand command) {
         VenueEntity venue = findVenue(venueId);
         UserEntity owner = findUser(venue.getOwnerUserId());
