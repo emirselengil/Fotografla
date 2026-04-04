@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import WeddingPanel from "../components/WeddingPanel";
 import { apiRequest } from "../lib/api";
 
@@ -39,17 +40,16 @@ const inputClass =
   "w-full rounded-xl px-4 py-3 text-sm outline-none transition border border-soft-border bg-white text-foreground focus:border-sage focus:ring-1 focus:ring-sage";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [form, setForm] = useState<RegisterForm>(defaultForm);
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordAgain, setShowPasswordAgain] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setSuccess("");
 
     if (!form.accountType) {
       setError("Lutfen hesap tipi secin.");
@@ -94,8 +94,8 @@ export default function RegisterPage() {
         }),
       });
 
-      setSuccess("Kayit basarili. Simdi giris yapabilirsiniz.");
       setForm(defaultForm);
+      router.replace("/");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Kayit olusturulamadi.");
     } finally {
@@ -269,7 +269,6 @@ export default function RegisterPage() {
             )}
 
             {error && <p className="text-sm text-rose-600">{error}</p>}
-            {success && <p className="text-sm text-sage-dark">{success}</p>}
 
             <button
               type="submit"
