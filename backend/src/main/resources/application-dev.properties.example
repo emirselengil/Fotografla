@@ -1,0 +1,5 @@
+# Copy to application-dev.properties (gitignored) for local overrides.
+# spring.config.import already loads optional application-dev.properties.
+
+# Tüm istekleri JWT olmadan aç (sadece yerel geliştirme)
+# app.security.require-authentication=false

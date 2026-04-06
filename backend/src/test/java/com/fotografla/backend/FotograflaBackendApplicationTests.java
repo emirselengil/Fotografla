@@ -24,6 +24,8 @@ class FotograflaBackendApplicationTests {
 		registry.add("spring.datasource.url", postgres::getJdbcUrl);
 		registry.add("spring.datasource.username", postgres::getUsername);
 		registry.add("spring.datasource.password", postgres::getPassword);
+		registry.add("app.security.jwt.secret", () -> "test-jwt-secret-minimum-32-bytes-long-key!!");
+		registry.add("app.security.jwt.expiration-seconds", () -> "3600");
 	}
 
 	@Test

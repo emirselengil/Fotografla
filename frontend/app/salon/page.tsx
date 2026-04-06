@@ -189,6 +189,9 @@ export default function SalonPage() {
                     <th className="text-left px-4 py-3 font-medium">Saat</th>
                     <th className="text-left px-4 py-3 font-medium">Durum</th>
                     <th className="text-left px-4 py-3 font-medium">Aksiyon</th>
+                    <th className="border-l border-soft-border px-4 py-3 text-center font-medium whitespace-nowrap align-middle">
+                      Detay
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -203,7 +206,7 @@ export default function SalonPage() {
                       <td className="px-4 py-4">
                         <span className="rounded-full bg-sage-light text-sage-dark text-xs font-semibold px-2.5 py-1">{event.status}</span>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 align-top">
                         <div className="flex flex-wrap gap-2">
                           {event.status !== "ACTIVE" && event.status !== "CANCELLED" && event.status !== "COMPLETED" && (
                             <button
@@ -222,6 +225,14 @@ export default function SalonPage() {
                             </button>
                           )}
                         </div>
+                      </td>
+                      <td className="border-l border-soft-border px-4 py-4 text-center align-middle whitespace-nowrap">
+                        <Link
+                          href={`/salon/etkinlikler/${event.id}`}
+                          className="inline-flex items-center justify-center rounded-xl border border-sage-light bg-white px-3.5 py-2 text-xs font-semibold text-sage-dark shadow-sm transition hover:bg-sage-light/60 hover:border-sage min-w-[4.5rem]"
+                        >
+                          Detay
+                        </Link>
                       </td>
                     </tr>
                   ))}

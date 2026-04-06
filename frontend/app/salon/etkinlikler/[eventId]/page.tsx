@@ -60,6 +60,13 @@ export default function SalonEtkinlikDetayPage() {
       return;
     }
 
+    if (
+      paymentStatus === "rejected" &&
+      !window.confirm("Ödeme onayını reddetmek istediğinize emin misiniz?")
+    ) {
+      return;
+    }
+
     setIsUpdatingPayment(true);
     try {
       const response = await updateEventPaymentStatus(eventDetail.id, paymentStatus);

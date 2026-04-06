@@ -1,4 +1,4 @@
-package com.fotografla.backend.common.config;
+package com.fotografla.backend.config;
 
 import com.fotografla.backend.auth.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,27 +25,39 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final String allowedOrigins;
+    private final boolean requireAuthentication;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
-            @Value("${app.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+            @Value("${app.cors.allowed-origins:http://localhost:3000}") String allowedOrigins,
+            @Value("${app.security.require-authentication:true}") boolean requireAuthentication) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.allowedOrigins = allowedOrigins;
+        this.requireAuthentication = requireAuthentication;
     }
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        if (!requireAuthentication) {
+            return http
+                    .cors(Customizer.withDefaults())
+                    .csrf(csrf -> csrf.disable())
+                    .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                    .build();
+        }
+
         return http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                            "/actuator/health",
-                            "/v1/system/ping",
-                            "/v1/auth/**",
-                            "/v1/guest/**",
-                            "/v1/media/**")
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/v1/system/ping",
+                                "/v1/auth/**",
+                                "/v1/guest/**",
+                                "/v1/media/**")
                         .permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
