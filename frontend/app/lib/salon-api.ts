@@ -1,4 +1,4 @@
-import { apiRequest } from "./api";
+import { apiFetchBlob, apiRequest } from "./api";
 
 const DEFAULT_VENUE_ID = process.env.NEXT_PUBLIC_DEFAULT_VENUE_ID ?? "33333333-3333-3333-3333-333333333333";
 const DEFAULT_COUPLE_ID = process.env.NEXT_PUBLIC_DEFAULT_COUPLE_ID ?? "44444444-4444-4444-4444-444444444444";
@@ -112,4 +112,18 @@ export async function generateVenueQr(venueId: string): Promise<VenueQrDashboard
   return apiRequest<VenueQrDashboardResponse>(`/api/v1/venues/${venueId}/qr/generate`, {
     method: "POST",
   });
+}
+
+/** Ekranda önizleme: yalnızca QR matrisi. */
+export async function fetchVenueQrPngBlob(venueId: string): Promise<Blob> {
+  return apiFetchBlob(`/api/v1/venues/${venueId}/qr/png`);
+}
+
+/** İndirme: giriş temalı tam baskı kartı PNG. */
+export async function fetchVenueQrCardPngBlob(venueId: string): Promise<Blob> {
+  return apiFetchBlob(`/api/v1/venues/${venueId}/qr/card.png`);
+}
+
+export async function fetchVenueQrPdfBlob(venueId: string): Promise<Blob> {
+  return apiFetchBlob(`/api/v1/venues/${venueId}/qr/print`);
 }

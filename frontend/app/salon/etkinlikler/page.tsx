@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppHeader from "../../components/AppHeader";
 import { fetchVenueEvents, type VenueEventItemResponse } from "../../lib/salon-api";
 import { fetchMySalonProfile } from "../../lib/profile-api";
-import { getStoredUserName } from "../../lib/auth";
+import { useHydrationSafeDisplayName } from "../../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../../lib/user-display";
 
 const navItems = [
@@ -37,7 +37,7 @@ export default function EtkinliklerPage() {
   const [filter, setFilter] = useState<EventFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState<VenueEventItemResponse[]>([]);
-  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
+  const [currentUserName, setCurrentUserName] = useHydrationSafeDisplayName("Salon");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [venueId, setVenueId] = useState<string | null>(null);
@@ -70,6 +70,7 @@ export default function EtkinliklerPage() {
       try {
         const mySalon = await fetchMySalonProfile();
         setVenueId(mySalon.venueId);
+        setCurrentUserName(mySalon.fullName?.trim() || "Salon");
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Etkinlikler alinamadi.");
         setLoading(false);

@@ -3,9 +3,15 @@
 import AppHeader from "../components/AppHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchVenueEvents, updateEventStatus, type VenueEventItemResponse } from "../lib/salon-api";
+import {
+  fetchVenueEvents,
+  fetchVenueQrDashboard,
+  fetchVenueQrPngBlob,
+  updateEventStatus,
+  type VenueEventItemResponse,
+} from "../lib/salon-api";
 import { fetchMySalonProfile } from "../lib/profile-api";
-import { getStoredUserName } from "../lib/auth";
+import { useHydrationSafeDisplayName } from "../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../lib/user-display";
 
 const navItems = [
@@ -37,10 +43,12 @@ export default function SalonPage() {
   const [events, setEvents] = useState<VenueEventItemResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
+  const [currentUserName, setCurrentUserName] = useHydrationSafeDisplayName("Salon");
   const isReloadingRef = useRef(false);
 
   const [venueId, setVenueId] = useState<string | null>(null);
+  const [qrPreviewUrl, setQrPreviewUrl] = useState<string | null>(null);
+  const [qrReady, setQrReady] = useState(false);
 
   const reload = useCallback(async () => {
     if (!venueId) {
@@ -71,6 +79,7 @@ export default function SalonPage() {
       try {
         const mySalon = await fetchMySalonProfile();
         setVenueId(mySalon.venueId);
+        setCurrentUserName(mySalon.fullName?.trim() || "Salon");
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Salon bilgisi alinamadi.");
         setLoading(false);
@@ -100,6 +109,59 @@ export default function SalonPage() {
       window.clearInterval(intervalId);
     };
   }, [venueId, reload]);
+
+  useEffect(() => {
+    if (!venueId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const dash = await fetchVenueQrDashboard(venueId);
+        if (cancelled) {
+          return;
+        }
+        if (!dash.generated) {
+          setQrReady(false);
+          setQrPreviewUrl((prev) => {
+            if (prev) {
+              URL.revokeObjectURL(prev);
+            }
+            return null;
+          });
+          return;
+        }
+        setQrReady(true);
+        const blob = await fetchVenueQrPngBlob(venueId);
+        if (cancelled) {
+          return;
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        setQrPreviewUrl((prev) => {
+          if (prev) {
+            URL.revokeObjectURL(prev);
+          }
+          return objectUrl;
+        });
+      } catch {
+        if (!cancelled) {
+          setQrReady(false);
+          setQrPreviewUrl((prev) => {
+            if (prev) {
+              URL.revokeObjectURL(prev);
+            }
+            return null;
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [venueId]);
 
   const activeEvent = useMemo(() => events.find((event) => event.status === "ACTIVE") ?? null, [events]);
   const stats = useMemo(() => {
@@ -249,6 +311,14 @@ export default function SalonPage() {
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-600">Mekan QR kodunu ve istatistikleri yonetmek icin QR ekranini kullanin.</p>
+              {qrReady && qrPreviewUrl ? (
+                <div className="flex justify-center rounded-xl border border-soft-border bg-white p-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrPreviewUrl} alt="Salon QR onizleme" className="h-28 w-28 object-contain" />
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 text-center">QR henuz olusturulmadi veya yukleniyor.</p>
+              )}
               <Link href="/salon/qr" className="w-full inline-flex justify-center rounded-xl bg-sage text-white text-sm font-medium py-2.5 hover:bg-sage-dark transition">
                 QR Ekranina Git
               </Link>

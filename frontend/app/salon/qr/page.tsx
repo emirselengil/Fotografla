@@ -1,12 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import QRCode from "qrcode";
-import { jsPDF } from "jspdf";
 import AppHeader from "../../components/AppHeader";
-import { fetchVenueQrDashboard, generateVenueQr, type VenueQrDashboardResponse } from "../../lib/salon-api";
+import {
+  fetchVenueQrDashboard,
+  fetchVenueQrCardPngBlob,
+  fetchVenueQrPdfBlob,
+  fetchVenueQrPngBlob,
+  generateVenueQr,
+  type VenueQrDashboardResponse,
+} from "../../lib/salon-api";
 import { fetchMySalonProfile } from "../../lib/profile-api";
-import { getStoredUserName } from "../../lib/auth";
+import { useHydrationSafeDisplayName } from "../../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../../lib/user-display";
 
 const navItems = [
@@ -28,17 +33,23 @@ export default function QRYonetimiPage() {
   const [dashboard, setDashboard] = useState<VenueQrDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
+  const [qrPreviewUrl, setQrPreviewUrl] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState("");
   const [venueId, setVenueId] = useState<string | null>(null);
-  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
+  const [currentUserName, setCurrentUserName] = useHydrationSafeDisplayName("Salon");
+  const [qrTargetUrl, setQrTargetUrl] = useState<string | null>(null);
 
   const guestPortalBaseUrl = (process.env.NEXT_PUBLIC_GUEST_PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
 
-  const qrTargetUrl = dashboard?.codeValue
-    ? `${(guestPortalBaseUrl || (typeof window !== "undefined" ? window.location.origin : "")).replace(/\/$/, "")}/misafir?salon=${encodeURIComponent(dashboard.codeValue)}`
-    : null;
+  useEffect(() => {
+    if (!dashboard?.codeValue) {
+      setQrTargetUrl(null);
+      return;
+    }
+    const base = (guestPortalBaseUrl || window.location.origin).replace(/\/$/, "");
+    setQrTargetUrl(`${base}/misafir?salon=${encodeURIComponent(dashboard.codeValue)}`);
+  }, [dashboard?.codeValue, guestPortalBaseUrl]);
 
   const load = useCallback(async () => {
     if (!venueId) {
@@ -63,6 +74,7 @@ export default function QRYonetimiPage() {
       try {
         const mySalon = await fetchMySalonProfile();
         setVenueId(mySalon.venueId);
+        setCurrentUserName(mySalon.fullName?.trim() || "Salon");
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Salon bilgisi alinamadi.");
         setLoading(false);
@@ -78,6 +90,53 @@ export default function QRYonetimiPage() {
     }
     void load();
   }, [venueId, load]);
+
+  useEffect(() => {
+    if (!venueId || !dashboard?.generated) {
+      setQrPreviewUrl((prev) => {
+        if (prev) {
+          URL.revokeObjectURL(prev);
+        }
+        return null;
+      });
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const blob = await fetchVenueQrPngBlob(venueId);
+        if (cancelled) {
+          return;
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        setQrPreviewUrl((prev) => {
+          if (prev) {
+            URL.revokeObjectURL(prev);
+          }
+          return objectUrl;
+        });
+      } catch {
+        if (!cancelled) {
+          setQrPreviewUrl((prev) => {
+            if (prev) {
+              URL.revokeObjectURL(prev);
+            }
+            return null;
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [venueId, dashboard?.generated]);
 
   const handleGenerate = async () => {
     if (!venueId) {
@@ -96,82 +155,43 @@ export default function QRYonetimiPage() {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const run = async () => {
-      if (!qrTargetUrl) {
-        setQrImageUrl(null);
-        return;
-      }
-
-      try {
-        const dataUrl = await QRCode.toDataURL(qrTargetUrl, {
-          width: 720,
-          margin: 1,
-          color: {
-            dark: "#1f2937",
-            light: "#ffffff",
-          },
-        });
-
-        if (!cancelled) {
-          setQrImageUrl(dataUrl);
-        }
-      } catch {
-        if (!cancelled) {
-          setQrImageUrl(null);
-        }
-      }
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [qrTargetUrl]);
-
-  const downloadPng = () => {
-    if (!qrImageUrl || !dashboard?.codeValue) {
+  const downloadPng = async () => {
+    if (!venueId || !dashboard?.codeValue) {
       return;
     }
 
     setIsExporting(true);
     try {
+      const blob = await fetchVenueQrCardPngBlob(venueId);
+      const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
-      anchor.href = qrImageUrl;
-      anchor.download = `fotografla-qr-${dashboard.codeValue}.png`;
+      anchor.href = url;
+      anchor.download = `fotografla-salon-qr-kart-${dashboard.codeValue}.png`;
       anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "PNG indirilemedi.");
     } finally {
       setIsExporting(false);
     }
   };
 
-  const downloadPdf = () => {
-    if (!qrImageUrl || !dashboard?.codeValue || !dashboard?.venueName) {
+  const downloadPdf = async () => {
+    if (!venueId || !dashboard?.codeValue) {
       return;
     }
 
     setIsExporting(true);
     try {
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(20);
-      pdf.text(dashboard.venueName, 105, 26, { align: "center" });
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
-      pdf.text("Fotografla Misafir Giris QR Kodu", 105, 34, { align: "center" });
-
-      pdf.addImage(qrImageUrl, "PNG", 55, 44, 100, 100, undefined, "FAST");
-
-      pdf.setFontSize(10);
-      pdf.text(`Kod: ${dashboard.codeValue}`, 105, 150, { align: "center" });
-      pdf.text("Bu kodu salon girisine ve masalara yerlestirin.", 105, 157, { align: "center" });
-
-      pdf.save(`fotografla-qr-${dashboard.codeValue}.pdf`);
+      const blob = await fetchVenueQrPdfBlob(venueId);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `fotografla-salon-qr.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "PDF indirilemedi.");
     } finally {
       setIsExporting(false);
     }
@@ -182,7 +202,10 @@ export default function QRYonetimiPage() {
       <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground">QR Kod Yonetimi</h1>
-          <p className="mt-2 text-sm text-slate-500 max-w-2xl leading-relaxed">Mekanin resmi giris QR kodunu buradan yonetebilirsiniz.</p>
+          <p className="mt-2 text-sm text-slate-500 max-w-2xl leading-relaxed">
+            QR icerigi sunucuda uretilir ve veritabanindaki salon kodunuzla eslesir. Canlida misafir linki icin backend ortaminda{" "}
+            <code className="text-xs bg-sage-light/40 px-1 rounded">GUEST_PORTAL_BASE_URL</code> kullanin.
+          </p>
         </div>
 
         {loading && <p className="text-sm text-slate-500">QR bilgileri yukleniyor...</p>}
@@ -201,13 +224,13 @@ export default function QRYonetimiPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <section className="bg-cream rounded-3xl border border-soft-border p-8">
               <h3 className="font-display text-xl font-semibold text-foreground mb-1">{dashboard.venueName}</h3>
-              <p className="text-xs text-slate-400 uppercase tracking-widest mb-6">Resmi Giris Kodu</p>
+              <p className="text-xs text-slate-400 uppercase tracking-widest mb-6">Resmi Giris Kodu (sunucu)</p>
               <div className="bg-white p-4 rounded-xl border border-soft-border mb-4 flex items-center justify-center min-h-[230px]">
-                {qrImageUrl ? (
+                {qrPreviewUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={qrImageUrl} alt="Salon QR" className="w-56 h-56 object-contain" />
+                  <img src={qrPreviewUrl} alt="Salon QR" className="w-56 h-56 object-contain" />
                 ) : (
-                  <p className="text-sm text-slate-500">QR gorseli hazirlaniyor...</p>
+                  <p className="text-sm text-slate-500">QR gorseli yukleniyor...</p>
                 )}
               </div>
               <div className="bg-white p-4 rounded-xl border border-soft-border mb-4">
@@ -220,23 +243,23 @@ export default function QRYonetimiPage() {
               </div>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <button
-                  onClick={downloadPdf}
-                  disabled={!qrImageUrl || isExporting}
+                  onClick={() => void downloadPdf()}
+                  disabled={isExporting}
                   className="rounded-xl border border-soft-border bg-white text-slate-700 text-sm font-medium py-2.5 hover:bg-slate-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   PDF Indir
                 </button>
                 <button
-                  onClick={downloadPng}
-                  disabled={!qrImageUrl || isExporting}
+                  onClick={() => void downloadPng()}
+                  disabled={isExporting}
                   className="rounded-xl border border-soft-border bg-white text-slate-700 text-sm font-medium py-2.5 hover:bg-slate-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   PNG Indir
                 </button>
               </div>
-              <button onClick={() => void handleGenerate()} disabled={isGenerating} className="w-full rounded-xl bg-sage text-white text-sm font-medium py-2.5 hover:bg-sage-dark transition">
-                {isGenerating ? "Yenileniyor..." : "QR Yenile"}
-              </button>
+              <p className="text-xs text-slate-500 text-center">
+                Her salon icin tek QR kodu uretilir; baski materyalleriniz bu kodla uyumlu kalir.
+              </p>
             </section>
 
             <div className="flex flex-col gap-4">

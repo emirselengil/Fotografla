@@ -58,3 +58,43 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
 
   return (await response.json()) as T;
 }
+
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const headers = new Headers();
+  const token = getToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "GET",
+    headers,
+  });
+
+  if (!response.ok) {
+    let message = `Request failed with status ${response.status}`;
+    try {
+      const payload = (await response.json()) as ApiError;
+      if (payload?.error) {
+        message = payload.error;
+      } else if (payload?.message) {
+        message = payload.message;
+      }
+    } catch {
+      // Body may be empty or non-JSON.
+    }
+
+    if (
+      response.status === 401 &&
+      !path.startsWith("/api/v1/auth/") &&
+      typeof window !== "undefined"
+    ) {
+      clearAuth();
+      window.location.replace("/?reason=session-expired");
+    }
+
+    throw new ApiRequestError(message, response.status);
+  }
+
+  return response.blob();
+}

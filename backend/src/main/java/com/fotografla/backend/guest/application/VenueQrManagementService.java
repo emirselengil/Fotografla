@@ -8,6 +8,7 @@ import com.fotografla.backend.venue.domain.VenueEntity;
 import com.fotografla.backend.venue.domain.VenueRepository;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -64,13 +65,11 @@ public class VenueQrManagementService {
 
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-        venueQrCodeRepository.findFirstByVenueIdAndStatusOrderByCreatedAtDesc(venueId, "active")
-                .ifPresent(existing -> {
-                    existing.setStatus("revoked");
-                    existing.setRevokedAt(now);
-                    existing.setRevokedReason("Regenerated");
-                    venueQrCodeRepository.save(existing);
-                });
+        Optional<VenueQrCodeEntity> alreadyActive =
+                venueQrCodeRepository.findFirstByVenueIdAndStatusOrderByCreatedAtDesc(venueId, "active");
+        if (alreadyActive.isPresent()) {
+            return dashboard(venueId);
+        }
 
         VenueQrCodeEntity qr = new VenueQrCodeEntity();
         qr.setVenueId(venueId);

@@ -6,7 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import AppHeader from "../../../components/AppHeader";
 import { createEvent } from "../../../lib/salon-api";
 import { fetchMySalonProfile } from "../../../lib/profile-api";
-import { getStoredUserName } from "../../../lib/auth";
+import { useHydrationSafeDisplayName } from "../../../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../../../lib/user-display";
 
 const navItems = [
@@ -61,13 +61,14 @@ export default function YeniEtkinlikPage() {
   const [activeVenueId, setActiveVenueId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
+  const [currentUserName, setCurrentUserName] = useHydrationSafeDisplayName("Salon");
 
   useEffect(() => {
     const run = async () => {
       try {
         const mySalon = await fetchMySalonProfile();
         setActiveVenueId(mySalon.venueId);
+        setCurrentUserName(mySalon.fullName?.trim() || "Salon");
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Aktif salon bilgisi alinamadi.");
       }

@@ -174,7 +174,7 @@ export default function WeddingPanel() {
             lineHeight: 1.15,
           }}
         >
-          Fotografla
+          Fotoğrafla
         </p>
         <div style={{ height: "1.8rem" }} />
         <p
@@ -186,7 +186,7 @@ export default function WeddingPanel() {
             lineHeight: 1.7,
           }}
         >
-          Anilariniz tek bir cercevede.
+          Anılarınız tek bir çerçevede.
         </p>
       </div>
     </div>

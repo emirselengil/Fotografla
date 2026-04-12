@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import AppHeader from "../../../components/AppHeader";
 import { fetchEventDetail, updateEventPaymentStatus, updateEventStatus, type EventResponse } from "../../../lib/salon-api";
-import { getStoredUserName } from "../../../lib/auth";
+import { useHydrationSafeDisplayName } from "../../../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../../../lib/user-display";
 
 const navItems = [
@@ -30,7 +30,7 @@ export default function SalonEtkinlikDetayPage() {
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState("");
-  const [currentUserName] = useState(() => getStoredUserName() || "Salon");
+  const [currentUserName] = useHydrationSafeDisplayName("Salon");
 
   const loadDetail = useCallback(async () => {
     if (!eventId) {

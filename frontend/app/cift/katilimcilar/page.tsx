@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import AppHeader from "../../components/AppHeader";
 import { fetchCurrentCoupleLatestEvent, fetchEventParticipants, type ParticipantListItemResponse } from "../../lib/dashboard-api";
-import { getStoredUserName } from "../../lib/auth";
+import { useHydrationSafeDisplayName } from "../../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../../lib/user-display";
 
 type AppUser = {
@@ -46,7 +46,7 @@ export default function KatilimcilarPage() {
   const [filter, setFilter] = useState<"all" | "photos" | "videos">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<AppUser[]>([]);
-  const [currentUserName] = useState(() => getStoredUserName() || "Cift");
+  const [currentUserName] = useHydrationSafeDisplayName("Cift");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 

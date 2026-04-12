@@ -3,7 +3,8 @@
 import AppHeader from "../../components/AppHeader";
 import { useEffect, useState } from "react";
 import { fetchMySalonProfile, updateSalonProfile } from "../../lib/profile-api";
-import { getStoredUserName, setStoredUserName } from "../../lib/auth";
+import { setStoredUserName } from "../../lib/auth";
+import { useHydrationSafeDisplayName } from "../../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../../lib/user-display";
 
 const navItems = [
@@ -41,7 +42,7 @@ export default function SalonProfilPage() {
   const [profile, setProfile] = useState<SalonProfileData>(defaultProfile);
   const [draft, setDraft] = useState<SalonProfileData>(defaultProfile);
   const [venueId, setVenueId] = useState<string | null>(null);
-  const [currentUserName, setCurrentUserName] = useState(() => getStoredUserName() || "Salon");
+  const [currentUserName, setCurrentUserName] = useHydrationSafeDisplayName("Salon");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");

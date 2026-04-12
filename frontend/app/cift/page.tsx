@@ -14,7 +14,7 @@ import {
   type MediaListItemResponse,
   type ParticipantListItemResponse,
 } from "../lib/dashboard-api";
-import { getStoredUserName } from "../lib/auth";
+import { useHydrationSafeDisplayName } from "../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../lib/user-display";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
@@ -68,7 +68,7 @@ export default function CiftPage() {
   const [participants, setParticipants] = useState<ParticipantListItemResponse[]>([]);
   const [eventCode, setEventCode] = useState("");
   const [isLinking, setIsLinking] = useState(false);
-  const [currentUserName] = useState(() => getStoredUserName() || "Cift");
+  const [currentUserName] = useHydrationSafeDisplayName("Cift");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 

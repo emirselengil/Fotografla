@@ -10,6 +10,7 @@ import com.fotografla.backend.venue.domain.VenueEntity;
 import com.fotografla.backend.venue.domain.VenueRepository;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -42,7 +43,11 @@ public class GuestAccessService {
                 .orElseThrow(() -> new IllegalArgumentException("Salon bulunamadi."));
 
         EventEntity activeEvent = eventRepository
-                .findFirstByVenueIdAndStatusOrderByStartsAtDesc(qr.getVenueId(), "active")
+                .findFirstByVenueIdAndStartsAtLessThanEqualAndEndsAtGreaterThanEqualAndStatusNotInOrderByStartsAtDesc(
+                        qr.getVenueId(),
+                        now,
+                        now,
+                        List.of("cancelled", "completed"))
                 .orElse(null);
 
         return new QrResolveResponse(

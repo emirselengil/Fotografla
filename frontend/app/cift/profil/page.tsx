@@ -3,7 +3,8 @@
 import AppHeader from "../../components/AppHeader";
 import { useEffect, useState } from "react";
 import { fetchCoupleProfile, updateCoupleProfile } from "../../lib/profile-api";
-import { getStoredUserName, setStoredUserName } from "../../lib/auth";
+import { setStoredUserName } from "../../lib/auth";
+import { useHydrationSafeDisplayName } from "../../lib/use-hydration-safe-display-name";
 import { buildInitials } from "../../lib/user-display";
 
 const navItems = [
@@ -36,7 +37,7 @@ const defaultProfile: CoupleProfileData = {
 export default function CiftProfilPage() {
   const [profile, setProfile] = useState<CoupleProfileData>(defaultProfile);
   const [draft, setDraft] = useState<CoupleProfileData>(defaultProfile);
-  const [currentUserName, setCurrentUserName] = useState(() => getStoredUserName() || "Cift");
+  const [currentUserName, setCurrentUserName] = useHydrationSafeDisplayName("Cift");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");

@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import WeddingPanel from "./components/WeddingPanel";
 import { apiRequest } from "./lib/api";
-import { clearAuth, getRole, getToken, persistAuth } from "./lib/auth";
+import { clearAuth, persistAuth } from "./lib/auth";
 
 type LoginResponse = {
   token: string;
@@ -24,22 +24,6 @@ export default function Home() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const token = getToken();
-    const role = getRole();
-
-    if (!token || !role) {
-      return;
-    }
-
-    if (role === "salon_owner" || role === "staff") {
-      router.replace("/salon");
-      return;
-    }
-
-    router.replace("/cift");
-  }, [router]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
